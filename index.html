@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EF 40–49는 두 갈래로 갈라진다 — HFmrEF 진행·회복 경쟁위험 예측</title>
+<meta name="description" content="HFmrEF(EF 40–49)에서 HFrEF 진행과 회복을 경쟁위험으로 동시 예측하는 연구 설계. MIMIC-IV-ECHO 실측 5,315명.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="EF 40–49는 두 갈래로 갈라진다">
+<meta property="og:description" content="진행 21% · 회복 37% · 사망 31% — 세 갈래를 동시에 예측하는 경쟁위험 모델 설계.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/">
+<meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta name="theme-color" content="#1B1113">
+<link rel="canonical" href="https://kimhs950627.github.io/27paper-echo-hfmref/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B1113'/%3E%3Cpath d='M6 16 H13 M13 16 L22 8 M13 16 H22 M13 16 L22 24' stroke='%23F6F2EF' stroke-width='2.2' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Pretendard:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/site.css">
+</head>
+<body>
+<nav class="pagetabs" aria-label="페이지 전환">
+  <div class="wrap">
+    <a class="pt active" href="./" aria-current="page">연구 계획</a>
+    <a class="pt" href="review/">데이터 리뷰</a>
+  </div>
+</nav>
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 · 2026-11</p>
+    <h1>EF 40–49는<br><em>두 갈래</em>로 갈라진다</h1>
+    <p class="sub">심부전 with mildly reduced EF(HFmrEF)는 가이드라인이 <b>“고려할 수 있다”</b>고만 적어둔
+    유일한 구간이다. 규칙이 없으니 모델이 필요하다. 이 연구는 <b>HFrEF로 진행할 확률</b>과
+    <b>회복할 확률</b>을 동시에 예측해, 증량 시점과 재검 시점을 정한다.</p>
+
+    <div class="statband">
+      <div><div class="v">5,315</div><div class="l">HFmrEF 첫 확인<br>분석 코호트</div></div>
+      <div><div class="v p">1,139</div><div class="l">HFrEF 진행<br>21.4% · 중앙 291일</div></div>
+      <div><div class="v r">1,988</div><div class="l">회복 (EF ≥ 50)<br>37.4% · 중앙 218일</div></div>
+      <div><div class="v">1,642</div><div class="l">사망 (경쟁사건)<br>30.9%</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="problem">
+  <h2><span class="n">01</span>왜 이 구간이 비어 있나</h2>
+  <p class="lead">EF가 40% 미만이면 4제 요법이 명시적 적응이고, 50% 이상이면 4제 근거가 약하다.
+  40–49%는 그 사이 — 2023 ESC/HFA는 “may be considered”로 남겨두었다.</p>
+  <p>임상의가 실제로 마주하는 질문은 “이 환자가 HFrEF인가”가 아니라 <b>“지금 세게 갈까, 회복을 기다릴까”</b>다.
+  기다리면 EF가 50% 위로 올라와 약을 줄일 수 있고, 놓치면 4제·ICD 적응 시점을 잃는다.</p>
+  <div class="box">
+    <p><b>이 연구가 바꾸려는 것</b> — 심초음파 결과지가 나온 순간, 같은 검사에서 얻은 구조 지표로
+    “12개월 안에 진행할 확률 / 회복할 확률”을 함께 계산해 <b>증량 여부</b>와 <b>다음 심초음파 시점</b>을 출력한다.</p>
+  </div>
+</section>
+
+<section id="fork">
+  <h2><span class="n">02</span>경쟁위험이라는 구조</h2>
+  <p>HFmrEF는 한 방향으로만 가지 않는다. 진행만 세면 <b>회복한 사람</b>이, 회복만 세면 <b>진행한 사람</b>이 사라진다.
+  그래서 세 갈래를 동시에 다룬다 — 진행(관심 사건) · 회복(경쟁 사건) · 사망(경쟁 사건).</p>
+  <div class="fork">
+<svg viewBox="0 0 900 320" role="img" aria-label="HFmrEF에서 세 갈래로 갈라지는 결과">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Mono, monospace">
+    <rect x="16" y="120" width="196" height="80" style="fill:var(--color-surface-inverse)"/>
+    <text x="114" y="150" style="fill:var(--color-text-on-inverse)" font-size="13" text-anchor="middle">T0 · EF 40–49</text>
+    <text x="114" y="174" style="fill:var(--color-text-on-inverse);opacity:.72" font-size="11" text-anchor="middle">HFmrEF 첫 확인</text>
+    <text x="114" y="190" style="fill:var(--color-text-on-inverse);opacity:.72" font-size="11" text-anchor="middle">n = 5,315</text>
+
+    <g style="color:var(--color-negative)">
+      <path d="M212 160 C 290 160, 300 62, 372 62" style="stroke:var(--color-negative)" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+      <text x="250" y="88" style="fill:var(--color-negative)" font-size="11">진행</text>
+    </g>
+    <g style="color:var(--color-positive)">
+      <path d="M212 160 L 372 160" style="stroke:var(--color-positive)" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+      <text x="266" y="152" style="fill:var(--color-positive)" font-size="11">회복</text>
+    </g>
+    <g style="color:var(--color-text-3)">
+      <path d="M212 160 C 290 160, 300 258, 372 258" style="stroke:var(--color-text-3)" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+      <text x="246" y="244" style="fill:var(--color-text-3)" font-size="11">사망</text>
+    </g>
+
+    <rect x="380" y="30" width="504" height="64" fill="none" style="stroke:var(--color-negative)" stroke-width="2"/>
+    <text x="398" y="55" style="fill:var(--color-negative)" font-size="15" font-weight="bold">HFrEF 로 진행 · EF &lt; 40</text>
+    <text x="398" y="78" style="fill:var(--color-surface-inverse)" font-size="12">1,139명 (21.4%) · 중앙 291일</text>
+
+    <rect x="380" y="128" width="504" height="64" fill="none" style="stroke:var(--color-positive)" stroke-width="2"/>
+    <text x="398" y="153" style="fill:var(--color-positive)" font-size="15" font-weight="bold">회복 · EF ≥ 50</text>
+    <text x="398" y="176" style="fill:var(--color-surface-inverse)" font-size="12">1,988명 (37.4%) · 중앙 218일</text>
+
+    <rect x="380" y="226" width="504" height="64" fill="none" style="stroke:var(--color-text-3)" stroke-width="2"/>
+    <text x="398" y="251" style="fill:var(--color-text-3)" font-size="15" font-weight="bold">사망 (관찰 불가로 만듦)</text>
+    <text x="398" y="274" style="fill:var(--color-surface-inverse)" font-size="12">1,642명 (30.9%) · 중앙 118일</text>
+  </g>
+</svg>
+    <div class="fork-narrow">
+      <div class="fn-head"><b>T0 · EF 40–49</b><span>HFmrEF 첫 확인 · n = 5,315</span></div>
+      <div class="fn-row neg"><span class="fn-tag">진행</span><b>HFrEF · EF &lt; 40</b><span>1,139명 · 21.4% · 중앙 291일</span></div>
+      <div class="fn-row pos"><span class="fn-tag">회복</span><b>EF ≥ 50</b><span>1,988명 · 37.4% · 중앙 218일</span></div>
+      <div class="fn-row mute"><span class="fn-tag">사망</span><b>경쟁사건</b><span>1,642명 · 30.9% · 중앙 118일</span></div>
+    </div>
+  </div>
+  <p class="note">실측: EF 40–49를 처음 기록한 검사의 뒤쪽 EF만 사용. 관찰 기간이 0인 환자(EF 1회)는 제외.
+  사망은 사건 발생 전에 일어난 경우 경쟁사건으로 처리.</p>
+</section>
+
+<section id="why">
+  <h2><span class="n">03</span>왜 경쟁위험인가 — 놓치기 쉬운 두 가지</h2>
+  <ol class="steps">
+    <li><b>Kaplan–Meier 는 진행을 과대추정한다</b>
+      <span>회복한 환자를 중도절단으로 처리하면 그 사람들이 이후에도 “진행 위험”에 남아 있는 것으로 계산된다.
+      실제로는 위험집단에서 빠졌으므로 누적발생은 낮아진다. 이 연구는 누적발생함수(CIF)로 보고한다.</span></li>
+    <li><b>원인별 위험과 부분분포 위험은 다른 질문에 답한다</b>
+      <span>Cox 원인별 위험은 “지금 상태에서 진행이 얼마나 빨리 오나(병태생리)”,
+      Fine–Gray 부분분포는 “이 환자가 앞으로 진행할 확률(예측)”이다. 임상 결정에는 후자가 맞고,
+      두 결과를 함께 보고하는 것이 최근 예측모형 권고(TRIPOD+AI)에 부합한다.</span></li>
+    <li><b>사망은 정보를 지운다</b>
+      <span>심초음파를 다시 찍기 전에 사망하면 진행 여부를 알 수 없다. 사망을 단순 중도절단하면
+      “건강한 사람만 남는” 선택이 생긴다. 코호트에서 사망은 30.9%로 작지 않다.</span></li>
+  </ol>
+</section>
+
+<section id="data">
+  <h2><span class="n">04</span>데이터 — 세 층</h2>
+  <table>
+    <thead><tr><th>층</th><th>출처</th><th>쓰는 것</th></tr></thead>
+    <tbody>
+      <tr><td>① 사건 정의</td><td>MIMIC-IV-ECHO v1.0.1</td><td>TTE EF 시계열, index 검사의 구조화 측정치</td></tr>
+      <tr><td>② 공변량</td><td>MIMIC-IV hosp</td><td>랩(전이 전 90일)·동반질환·입원 맥락</td></tr>
+      <tr><td>③ 치료</td><td>MIMIC-IV prescriptions</td><td>index 전 365일 GDMT 계열 복용 (회복·진행에 영향)</td></tr>
+    </tbody>
+  </table>
+  <p class="note">영상은 쓰지 않는다. A4C 라벨 세트는 1,064클립/809명으로 코호트를 덮지 못해
+  tabular 설계로 확정. GPU·대용량 저장 없이 재현 가능.</p>
+</section>
+
+<section id="flow">
+  <h2><span class="n">05</span>코호트 흐름</h2>
+  <div class="cards">
+    <div><div class="tag">step 1</div><h3>70,429</h3><p>TTE EF 유효값 보유 환자</p></div>
+    <div><div class="tag">step 2</div><h3>8,218</h3><p>첫 TTE EF가 40–49 (HFmrEF index)</p></div>
+    <div><div class="tag">step 3</div><h3>5,315</h3><p>관찰 기간 &gt; 0 — 후속 EF 또는 사망 있음</p></div>
+  </div>
+  <p class="note">제외된 2,903명은 EF를 한 번만 찍고 사망 기록도 없어 추적이 성립하지 않는다.
+  이들을 “진행 없음”으로 넣으면 결과가 뒤집히므로 제외했다.</p>
+</section>
+
+<section id="model">
+  <h2><span class="n">06</span>모델 사양</h2>
+  <table>
+    <thead><tr><th>구분</th><th>내용</th><th>개수</th></tr></thead>
+    <tbody>
+      <tr><td>Y (결과)</td><td>3범주 경쟁위험: progress(EF&lt;40) · recover(EF≥50) · death</td><td>3</td></tr>
+      <tr><td>X (심초음파)</td><td>EF, LVEDD, 중격·후측벽 두께, AV Vmax, TR Vmax, E/e′, LA volume, 판막 서술</td><td class="num">~27</td></tr>
+      <tr><td>X (랩)</td><td>index 전 90일: Cr/eGFR, K, Na, HCO₃, Hb, PLT, INR, albumin, glucose, NT-proBNP</td><td class="num">~40</td></tr>
+      <tr><td>X (치료)</td><td>index 전 365일 GDMT 계열 복용·계열 수</td><td class="num">18</td></tr>
+      <tr><td>X (기타)</td><td>나이·성별·동반질환·index EF·이전 EF로부터 경과일</td><td class="num">~30</td></tr>
+      <tr class="hl"><td>출력</td><td>12·24개월 진행확률 / 회복확률 + 권고 행동</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <div class="box ok">
+    <p><b>출력 예시</b> — EF 44%, LVEDD 5.9 cm, NT-proBNP 1,240 pg/mL, 4제 중 1제 복용</p>
+    <p>12개월: 진행 <b>31%</b> · 회복 <b>38%</b> · 사망 <b>9%</b> → <b>3개월 재검, 4제 중 2제까지 증량</b></p>
+  </div>
+  <p class="note">주모형은 원인별 Cox(elastic-net) + Fine–Gray 부분분포, 비교용으로 GBDT·랜덤서바이벌포레스트.
+  성능은 시간의존 AUC·Brier·보정곡선으로 보고하고, 결정곡선으로 “재검 시점을 앞당길 이득”을 계산한다.</p>
+</section>
+
+<section id="novelty">
+  <h2><span class="n">07</span>노벨티 — 무엇이 남아 있나</h2>
+  <p>PubMed 실측(2026-11-01)에서 HFmrEF 문헌은 이미 1,718편이다. 그중 우리가 차지할 칸은 하나다.</p>
+  <table>
+    <thead><tr><th>선행 영역</th><th>대표</th><th>편수</th><th>우리와의 차이</th></tr></thead>
+    <tbody>
+      <tr><td>AI-ECG로 HFmrEF 진행 예측</td><td>Kim DY 2025, Front Cardiovasc Med (PMID 39995968)</td><td class="num">—</td>
+        <td>그들은 심전도+클러스터, 결과는 추적 EF 변화. 우리는 <b>에코 tabular + 시간-사건</b></td></tr>
+      <tr><td>ML 사망/재입원 예측</td><td>Zhao 2022, Tian 2023</td><td class="num">31</td><td>결과가 사망·입원, 진행 아님</td></tr>
+      <tr><td>범주 전이 기술</td><td>Gu 2020, ESC Heart Fail</td><td class="num">84</td><td>1년 시점 3군 재분류, 시간 미반영</td></tr>
+      <tr><td>HFmrEF + competing risk</td><td>—</td><td class="num">13</td><td>회복을 경쟁사건으로 둔 예측모형 없음</td></tr>
+      <tr><td>HFmrEF + 반복 심초음파</td><td>—</td><td class="num">6</td><td>재검 시점 결정과 연결한 연구 없음</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn">
+    <p><b>정직한 점수</b> — “HFmrEF 진행 예측”만 쓰면 2/10(2025년 점유). “에코로 진행 예측”은 3/10(모달리티 교체).
+    <b>“회복과 진행을 경쟁위험으로 동시 예측하고 결정 규칙까지”가 6.5/10</b>이다. 이 프레임을 유지해야 함.</p>
+  </div>
+</section>
+
+<section id="limits">
+  <h2><span class="n">08</span>한계</h2>
+  <ol class="steps">
+    <li><b>심초음파 재검 시점이 임의적이다</b><span>EF가 왜 그 날 찍혔는지가 관찰되지 않는다.
+      증상 악화로 찍은 검사는 진행을 앞당겨 관찰하는 선택편향이 있다. 재검 사유를 프록시로 넣어 민감도 분석.</span></li>
+    <li><b>외래 추적이 끊긴다</b><span>MIMIC은 입원 중심이라 외래 EF를 놓치면 중도절단이 정보성(informative)이 된다.
+      입원·퇴원 기록으로 마지막 접촉일을 보정.</span></li>
+    <li><b>EF 측정법이 명시되지 않는다</b><span>visual인지 Teichholz인지 문서에 없다. 측정 변동이 진행 판정에 섞인다.</span></li>
+    <li><b>단일기관</b><span>MIMIC은 미국 1개 Academic Medical Center. 외적 타당성은 별도 코호트가 필요하다.</span></li>
+  </ol>
+</section>
+
+<section id="next">
+  <h2><span class="n">09</span>다음 단계</h2>
+  <ol class="steps">
+    <li><b>데이터셋 확정</b><span>행 = HFmrEF index 1건, 열 = 사건·시간·공변량. 코드북 동봉.</span></li>
+    <li><b>기술통계 · 누적발생곡선</b><span>세 사건의 CIF를 그리고, 진행 vs 회복의 교차 시점을 확인.</span></li>
+    <li><b>모형 적합 · 검증</b><span>elastic-net Cox + Fine–Gray, 5-fold 반복 교차검증, 시간의존 AUC·Brier.</span></li>
+    <li><b>결정 규칙 도출</b><span>진행·회복 확률 조합에서 “증량 / 관망 / 재검 앞당김” 세 갈래 행동을 정하는 임계값.</span></li>
+  </ol>
+</section>
+
+<footer>
+  <p>데이터: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).<br>
+  환자 단위 데이터는 공개하지 않는다 — 이 페이지에는 집계 통계만 있다.</p>
+  <p>27paper-echo · 2026-11-01</p>
+</footer>
+
+</main>
+</body>
+</html>
