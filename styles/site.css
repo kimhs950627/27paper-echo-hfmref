@@ -194,3 +194,15 @@ pre.formula{font-family:var(--font-mono,"IBM Plex Mono",monospace);font-size:13p
   .chart svg{min-width:0;width:100%}
   .chart svg text{font-size:15px}
 }
+
+/* --- 그림 + 캡션 --- */
+figure.fig{margin:22px 0 14px}
+figure.fig figcaption{font-size:12.8px;line-height:1.7;color:var(--color-text-2);
+  border-left:4px solid var(--color-accent);padding:6px 0 6px 13px;margin-top:10px}
+figure.fig figcaption .fno{font-family:var(--font-mono,"IBM Plex Mono",monospace);font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent);margin-right:8px;
+  border:1px solid var(--color-accent);padding:1px 5px}
+figure.fig figcaption b{color:var(--color-text-1);display:block;margin:4px 0 3px;font-size:14px}
+figure.fig figcaption .cap{display:block}
+.box.plain{border-left-color:var(--color-positive);border-left-width:6px}
+.box.plain p{font-size:14.6px;line-height:1.7}
