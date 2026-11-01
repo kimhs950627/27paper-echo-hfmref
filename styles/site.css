@@ -206,3 +206,14 @@ figure.fig figcaption b{color:var(--color-text-1);display:block;margin:4px 0 3px
 figure.fig figcaption .cap{display:block}
 .box.plain{border-left-color:var(--color-positive);border-left-width:6px}
 .box.plain p{font-size:14.6px;line-height:1.7}
+
+@media (max-width:680px){
+  table.ptab,table.ptab thead,table.ptab tbody,table.ptab tr,table.ptab td{display:block;width:100%}
+  table.ptab thead{display:none}
+  table.ptab tr{padding:10px 0;border-bottom:1px solid var(--color-border-strong)}
+  table.ptab td{padding:2px 0;text-align:left;white-space:normal}
+  table.ptab td[data-label]::before{content:attr(data-label);display:inline-block;min-width:104px;
+    font-family:var(--font-mono,"IBM Plex Mono",monospace);font-size:10.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-text-3)}
+  table.ptab td:first-child{font-weight:700;font-size:15px;padding-bottom:3px}
+}
