@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>환자별 what-if는 왜 아직 안 되는가 — HFmrEF 방법론 리포트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="kicker">27paper-echo · 방법론 리포트 · 2026-11-04</p>
+  <h1>환자별 what-if는<br>왜 아직 안 되는가</h1>
+  <p class="sub">HFmrEF 환자 한 명에게 약을 시작하거나 끊었을 때 12개월 확률표가 어떻게 바뀌는지 —
+  지금 데이터로 어디까지 되고, 어디서 막히는지를 실제 수치로 정리했다.</p>
+  <p class="meta">코호트 5,315명 · landmark 4,554명 · 12개월 사건 진행 616 / 회복 1,222 / 사망 421</p>
+</header>
+
+<div class="lede">
+  <p class="lede-title">세 줄 요약</p>
+  <ol>
+    <li><strong>군별 비교는 이미 나왔다.</strong> 약 시작군은 회복이 +4.8%p 높지만 사망도 +6.3%p 높다.
+    원인은 약이 아니라 <strong>시작군이 더 아프고, 관측기간이 4배 짧다</strong>는 것.</li>
+    <li><strong>베이즈망은 계산기는 되지만 표가 비어 실패한다.</strong> 부모 14개면 조건부확률표가
+    <strong>589,824칸</strong>인데 환자는 4,554명이다 → 모든 확률이 0.250(균등)으로 나왔다.</li>
+    <li><strong>정답은 모형 두 개가 아니라 하나.</strong> 잠재상태와 치료를 같은 우도 안에 넣는
+    8상태 CT-HMM. 그러면 환자별 표도, 신뢰구간도 한 번에 나온다.</li>
+  </ol>
+</div>
+
+<h2><span class="num">01</span>우리가 하려는 것</h2>
+
+<p class="lead">목표는 이 한 줄이다. <strong>"이 환자에게 약을 시작하면 12개월 회복 확률이 몇 %p 오르는가."</strong></p>
+
+<p>예를 들어 62세 남성, EF 45%, LVEDD 5.0 cm, 동반질환 없음. 지금은 약을 안 먹고 있다.
+이 사람의 12개월 확률표가 이렇게 나왔다고 하자.</p>
+
+<table>
+<thead><tr><th>상태</th><th class="n">현상 유지</th><th class="n">약 시작</th><th class="n">차이</th></tr></thead>
+<tbody>
+<tr><td>정상 회복</td><td class="n">28.6%</td><td class="n">38.0%</td><td class="n neg">+9.3%p</td></tr>
+<tr><td>HFmrEF 유지</td><td class="n">56.2%</td><td class="n">40.2%</td><td class="n">−16.0%p</td></tr>
+<tr><td>HFrEF 진행</td><td class="n">7.9%</td><td class="n">13.3%</td><td class="n pos">+5.4%p</td></tr>
+<tr><td>사망</td><td class="n">7.3%</td><td class="n">8.6%</td><td class="n pos">+1.3%p</td></tr>
+</tbody>
+</table>
+
+<p>여기서 <strong>진행이 +5.4%p 늘어난 것</strong>이 이상하다. 약을 주면 나빠진다는 뜻이기 때문이다.
+이 글은 그 숫자가 왜 나왔는지, 어떻게 고쳐야 하는지를 다룬다.</p>
+
+<h2><span class="num">02</span>1차 시도 — 군별 비교의 네 가지 함정</h2>
+
+<p>landmark를 90일로 잡고, 그 전에 GDMT를 시작한 군(2,442명)과 아닌 군(2,112명)을 비교했다.
+3개월 확률표는 이렇게 나온다.</p>
+
+<table><thead><tr><th>상태</th><th class='n'>미시작</th><th class='n'>시작</th><th class='n'>차이</th></tr></thead><tbody><tr><td>정상</td><td class="n">7.3%</td><td class="n">10.1%</td><td class="n pos">+2.8%p</td></tr><tr><td>HFmrEF</td><td class="n">83.0%</td><td class="n">76.9%</td><td class="n neg">-6.1%p</td></tr><tr><td>HFrEF</td><td class="n">5.3%</td><td class="n">6.2%</td><td class="n pos">+0.9%p</td></tr><tr><td>사망</td><td class="n">4.3%</td><td class="n">6.8%</td><td class="n pos">+2.5%p</td></tr></tbody></table>
+
+<p>방향은 맞다. 회복이 늘고 HFmrEF 잔류가 줄었다. 그런데 사망이 +2.5%p 늘었고, 진행도 +0.9%p 늘었다.
+임상적으로 GDMT가 사망을 늘린다는 건 기존 RCT와 정면으로 충돌한다. 원인은 네 가지다.</p>
+
+<h3>함정 1 · 시작군이 더 아프다</h3>
+<table>
+<thead><tr><th>지표</th><th class="n">미시작</th><th class="n">시작</th></tr></thead>
+<tbody>
+<tr><td>index EF 중앙값</td><td class="n">45</td><td class="n">41</td></tr>
+<tr><td>EF 40에 몰린 비율</td><td class="n">43.3%</td><td class="n">49.3%</td></tr>
+<tr><td>NT-proBNP 중앙값</td><td class="n">2,769</td><td class="n">4,523</td></tr>
+<tr><td>재원일수 중앙값</td><td class="n">4일</td><td class="n">8일</td></tr>
+<tr><td>지난 1년 입원 횟수</td><td class="n">1.29</td><td class="n">1.79</td></tr>
+</tbody>
+</table>
+<p>BNP가 1.6배인데, 이 변수는 <strong>측정률 31%</strong>라 성향점수에 들어가지 못했다.
+교란의 핵심 지표를 빼고 보정한 셈이다.</p>
+
+<h3>함정 2 · 관측기간이 4배 다르다</h3>
+<figure>
+<svg viewBox="0 0 860 200" role="img" aria-label="두 군의 관측기간 비교"><text x="8" y="61" font-size="13" fill="#101828">미시작군</text><rect x="211.3" y="47" width="560.5" height="18" fill="#E8E3D7" stroke="#B9B09B"/><line x1="417.1" y1="43" x2="417.1" y2="69" stroke="#A16207" stroke-width="3"/><text x="781.8" y="60" font-size="12" font-family="monospace" fill="#51555D">793일</text><text x="150" y="40" font-size="11.5" font-family="monospace" fill="#5D5E63">25%</text><text x="766" y="40" font-size="11.5" font-family="monospace" fill="#5D5E63">75%</text><text x="8" y="123" font-size="13" fill="#101828">시작군</text><rect x="155.4" y="109" width="309.2" height="18" fill="#E8E3D7" stroke="#B9B09B"/><line x1="213.7" y1="105" x2="213.7" y2="131" stroke="#A16207" stroke-width="3"/><text x="474.6" y="122" font-size="12" font-family="monospace" fill="#51555D">189일</text><text x="150" y="102" font-size="11.5" font-family="monospace" fill="#5D5E63">25%</text><text x="766" y="102" font-size="11.5" font-family="monospace" fill="#5D5E63">75%</text><line x1="150.0" y1="152" x2="150.0" y2="158" stroke="#B9B09B"/><text x="150.0" y="174" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">0년</text><line x1="272.9473684210526" y1="152" x2="272.9473684210526" y2="158" stroke="#B9B09B"/><text x="272.9473684210526" y="174" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">1년</text><line x1="395.89473684210526" y1="152" x2="395.89473684210526" y2="158" stroke="#B9B09B"/><text x="395.89473684210526" y="174" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">2년</text><line x1="518.8421052631579" y1="152" x2="518.8421052631579" y2="158" stroke="#B9B09B"/><text x="518.8421052631579" y="174" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">3년</text><line x1="641.7894736842105" y1="152" x2="641.7894736842105" y2="158" stroke="#B9B09B"/><text x="641.7894736842105" y="174" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">4년</text><line x1="764.7368421052631" y1="152" x2="764.7368421052631" y2="158" stroke="#B9B09B"/><text x="764.7368421052631" y="174" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">5년</text><line x1="150" y1="152" x2="790" y2="152" stroke="#D6CFBF"/></svg>
+<figcaption><b>그림 1.</b> index 이후 마지막 심초음파 또는 사망까지의 기간. 막대는 25–75백분위,
+세로선은 중앙값. 시작군은 <b>189일</b>, 미시작군은 <b>793일</b>에서 관측이 끊긴다.</figcaption>
+</figure>
+<div class="plain"><span class="lbl">쉽게 말하면</span>
+같은 12개월 확률을 계산하는데, 한 군은 6개월치 자료로, 다른 군은 2년치 자료로 계산하고 있다.
+사진을 4배 더 많이 찍은 쪽이 "많이 변했다"고 기록되는 건 당연하다.</div>
+
+<h3>함정 3 · 단위시간당 검사 밀도가 3배</h3>
+<p>심초음파 횟수는 4.12회 vs 4.69회로 비슷해 보이지만, 관측기간으로 나누면
+<strong>0.027회/일 vs 0.0095회/일</strong>이다. 같은 기간에 3배 자주 찍힌다.</p>
+
+<h3>함정 4 · 모든 전이가 빨라진다</h3>
+<figure>
+<svg viewBox="0 0 860 330" role="img" aria-label="전이강도 비율"><text x="8" y="34" font-size="12" fill="#101828">HFmrEF→정상</text><rect x="310" y="19" width="0" height="22" fill="none"/><rect x="310" y="19" width="145.2" height="22" fill="#A16207"/><text x="463.2" y="34" font-size="11.5" font-family="monospace" fill="#51555D">1.44</text><text x="8" y="70" font-size="12" fill="#101828">HFmrEF→사망</text><rect x="310" y="55" width="0" height="22" fill="none"/><rect x="310" y="55" width="207.9" height="22" fill="#A16207"/><text x="525.9" y="70" font-size="11.5" font-family="monospace" fill="#51555D">1.63</text><text x="8" y="106" font-size="12" fill="#101828">HFmrEF→HFrEF</text><rect x="310" y="91" width="0" height="22" fill="none"/><rect x="310" y="91" width="75.9" height="22" fill="#A16207"/><text x="393.9" y="106" font-size="11.5" font-family="monospace" fill="#51555D">1.23</text><text x="8" y="142" font-size="12" fill="#101828">정상→HFmrEF</text><rect x="310" y="127" width="0" height="22" fill="none"/><rect x="310" y="127" width="125.4" height="22" fill="#A16207"/><text x="443.4" y="142" font-size="11.5" font-family="monospace" fill="#51555D">1.38</text><text x="8" y="178" font-size="12" fill="#101828">HFrEF→사망</text><rect x="310" y="163" width="0" height="22" fill="none"/><rect x="310" y="163" width="194.7" height="22" fill="#A16207"/><text x="512.7" y="178" font-size="11.5" font-family="monospace" fill="#51555D">1.59</text><text x="8" y="214" font-size="12" fill="#101828">HFrEF→HFmrEF</text><rect x="310" y="199" width="0" height="22" fill="none"/><rect x="310" y="199" width="112.2" height="22" fill="#A16207"/><text x="430.2" y="214" font-size="11.5" font-family="monospace" fill="#51555D">1.34</text><text x="8" y="250" font-size="12" fill="#101828">HFrEF→정상</text><rect x="310" y="235" width="0" height="22" fill="none"/><rect x="310" y="235" width="89.1" height="22" fill="#A16207"/><text x="407.1" y="250" font-size="11.5" font-family="monospace" fill="#51555D">1.27</text><text x="8" y="286" font-size="12" fill="#101828">정상→사망</text><rect x="310" y="271" width="0" height="22" fill="none"/><rect x="187.9" y="271" width="122.1" height="22" fill="#2F6F4E"/><text x="141.9" y="286" font-size="11.5" font-family="monospace" fill="#51555D">0.63</text><line x1="310" y1="18" x2="310" y2="318" stroke="#101828" stroke-width="1.5"/><text x="310" y="340" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">1.00 (같음)</text><text x="430" y="340" font-size="11" font-family="monospace" fill="#A16207" text-anchor="middle">빠름</text></svg>
+<figcaption><b>그림 2.</b> 시작군의 전이강도를 미시작군으로 나눈 값. 회복만 빨라진 게 아니라
+사망(1.63배)과 악화(1.23배)까지 같이 빨라졌다. 유일하게 낮은 것은 정상→사망(0.63배).</figcaption>
+</figure>
+<div class="plain"><span class="lbl">쉽게 말하면</span>
+약이 상태 이탈을 가속한다면, 올라가는 쪽과 죽는 쪽이 같이 빨라질 수 있다. 하지만 이렇게
+모든 방향이 고르게 빨라지는 패턴은 <b>관측 밀도 차이</b>나 <b>중증도 차이</b>의 전형적인 흔적이다.</div>
+
+<h2><span class="num">03</span>2차 시도 — 베이즈망(bnlearn)으로 환자별 계산</h2>
+
+<p>Python <code>bnlearn</code> 1.1.0으로 지평별 정적 베이즈망 4개를 적합하고,
+환자 증거를 넣어 <code>P(상태 | 치료, 환자)</code>를 계산했다. 공변량 11개 버전(v1)은 작동했다.</p>
+
+<div class="grid2">
+<div class="card"><p class="card-title">환자 A · 3개월</p>
+<p style="font-family:var(--font-mono);font-size:13px;line-height:1.9;margin:0">
+미시작 정상 14.1 · HFmrEF 77.3 · HFrEF 4.9 · 사망 3.6<br>
+시작 &nbsp;&nbsp;정상 25.9 · HFmrEF 60.1 · HFrEF 10.7 · 사망 3.3</p>
+<p style="margin:10px 0 0;font-size:14px">Δ회복 <b>+11.8%p</b> · Δ진행 <b class="pos">+5.8%p</b></p></div>
+<div class="card"><p class="card-title">환자 A · 12개월</p>
+<p style="font-family:var(--font-mono);font-size:13px;line-height:1.9;margin:0">
+미시작 정상 28.6 · HFmrEF 56.2 · HFrEF 7.9 · 사망 7.3<br>
+시작 &nbsp;&nbsp;정상 38.0 · HFmrEF 40.2 · HFrEF 13.3 · 사망 8.6</p>
+<p style="margin:10px 0 0;font-size:14px">Δ회복 <b>+9.3%p</b> · Δ진행 <b class="pos">+5.4%p</b></p></div>
+</div>
+
+<p>문제는 같은 모순이 <strong>더 크게</strong> 재현된 것이다. 다중상태 모형은 3개월 진행 차이가
++0.9%p였는데, 베이즈망은 +5.8%p다.</p>
+
+<figure>
+<svg viewBox="0 0 860 170" role="img" aria-label="방법별 3개월 진행 확률 차이"><text x="8" y="45" font-size="12.5" fill="#101828">다중상태 모형</text><rect x="230" y="27" width="63.7" height="26" fill="#A16207"/><text x="303.7" y="45" font-size="12" font-family="monospace" fill="#51555D">+0.9%p</text><text x="8" y="105" font-size="12.5" fill="#101828">베이즈망 (v1)</text><rect x="230" y="87" width="410.5" height="26" fill="#9B2C2C"/><text x="650.5" y="105" font-size="12" font-family="monospace" fill="#51555D">+5.8%p</text><line x1="230" y1="22" x2="230" y2="130" stroke="#101828"/><text x="230" y="150" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text></svg>
+<figcaption><b>그림 3.</b> 같은 질문에 대한 두 방법의 답. 베이즈망이 6배 크게 나오는 이유는
+결과 노드를 "그 시점에 마지막으로 찍힌 EF"라는 라벨로 쓰기 때문 — 관측 횟수가 곧 결과가 된다.</figcaption>
+</figure>
+
+<p>그래서 중증도 변수 3개(NT-proBNP·재원일수·입원력)를 부모로 추가한 v2를 돌렸다.</p>
+
+<div class="warnbox"><span class="lbl">v2 결과 — 계산 불가</span>
+모든 환자, 모든 지평에서 확률이 <b>0.250</b>(정확히 균등분포)로 나왔다.
+조건부확률표가 너무 커져서 해당 환자의 칸이 비었고, 스무딩이 균등값으로 채운 것이다.</div>
+
+<figure>
+<svg viewBox="0 0 860 260" role="img" aria-label="부모 수에 따른 조건부확률표 크기"><text x="8" y="41" font-size="12" fill="#101828">부모 3개</text><rect x="160" y="29" width="156.5" height="18" fill="#2F6F4E"/><text x="324.5" y="43" font-size="11.5" font-family="monospace" fill="#51555D">32칸</text><text x="8" y="75" font-size="12" fill="#101828">부모 5개</text><rect x="160" y="63" width="268.7" height="18" fill="#2F6F4E"/><text x="436.7" y="77" font-size="11.5" font-family="monospace" fill="#51555D">384칸</text><text x="8" y="109" font-size="12" fill="#101828">부모 7개</text><rect x="160" y="97" width="362.6" height="18" fill="#2F6F4E"/><text x="530.6" y="111" font-size="11.5" font-family="monospace" fill="#51555D">3,072칸</text><text x="8" y="143" font-size="12" fill="#101828">부모 10개</text><rect x="160" y="131" width="456.5" height="18" fill="#A16207"/><text x="624.5" y="145" font-size="11.5" font-family="monospace" fill="#51555D">24,576칸</text><text x="8" y="177" font-size="12" fill="#101828">부모 14개</text><rect x="160" y="165" width="600.0" height="18" fill="#9B2C2C"/><text x="768.0" y="179" font-size="11.5" font-family="monospace" fill="#51555D">589,824칸</text><text x="160" y="232" font-size="11" font-family="monospace" fill="#5D5E63">표본 4,554명 → 칸당 1명도 못 채우는 구간</text></svg>
+<figcaption><b>그림 4.</b> 부모 수에 따른 조건부확률표 칸 수(로그 축). 부모 14개면
+<b>589,824칸</b>인데 환자는 4,554명이다. 정적 베이즈망의 실질 상한은 부모 5~6개다.</figcaption>
+</figure>
+
+<div class="plain"><span class="lbl">쉽게 말하면</span>
+환자 한 명의 조합(EF·LVEDD·BNP·재원일·나이·동반질환 6개…)은 <b>세상에 한 명뿐</b>이다.
+베이즈망은 "같은 조합을 가진 사람이 몇 명 있었나"를 세는 방식이라, 조합이 세분화될수록
+셀 사람이 사라진다. 회귀모형은 변수를 더해도 계수만 늘어나지만, 확률표는 칸이 곱으로 늘어난다.</div>
+
+<h2><span class="num">04</span>HMM의 정확성은 어떻게 재는가</h2>
+
+<p>잠재상태는 아무도 못 봤기 때문에 AUC를 계산할 수 없다. 대신 네 가지로 평가한다.</p>
+
+<div class="card"><p class="card-title">1. 홀드아웃 예측우도</p>
+<p style="margin:0">학습에 쓰지 않은 환자의 EF 시계열에 대해 모형이 매긴 확률. 잠재상태 모형의
+표준 지표이고, 모형 간 비교가 가능하다.</p></div>
+
+<div class="card"><p class="card-title">2. 사후예측검사</p>
+<p style="margin:0">적합된 모형에서 가상 환자를 시뮬레이션해 EF 분포·검사 간격 분포가 실제와
+같은지 본다. 적합 결과 <b>σ = 5.78</b>로, 실측 판독 흔들림(중앙 |ΔEF| 5.0%p)과 일치했다.</p></div>
+
+<div class="card"><p class="card-title">3. 상태확률 캘리브레이션</p>
+<p style="margin:0">"12개월에 HFrEF일 확률 0.20"이라고 한 환자들을 모아 실제 비율이 0.20인지
+확인한다. Brier score와 보정곡선으로 보고한다.</p></div>
+
+<div class="card"><p class="card-title">4. 모수 복구 시뮬레이션</p>
+<p style="margin:0">Q를 알려진 값으로 정해 데이터를 만든 뒤 다시 추정해 편향을 확인한다.
+추정기가 제대로 작동하는지를 검증하는 단계.</p></div>
+
+<p>참고로 파일럿에서 12개월 점유확률은 이렇게 나왔다.</p>
+<table>
+<thead><tr><th>방법</th><th class="n">정상</th><th class="n">HFmrEF</th><th class="n">HFrEF</th><th class="n">사망</th></tr></thead>
+<tbody>
+<tr><td>CT-HMM (2층)</td><td class="n">26.5%</td><td class="n">36.5%</td><td class="n">14.4%</td><td class="n">22.7%</td></tr>
+<tr><td>관측 라벨 이월</td><td class="n">22.2%</td><td class="n">45.3%</td><td class="n">11.0%</td><td class="n">21.6%</td></tr>
+</tbody>
+</table>
+<p>HFmrEF 잔류가 <strong>45.3% → 36.5%</strong>로 내려간다. 관측 라벨은 판독 흔들림을 "그대로 머문 것"으로
+세지만, 은닉상태 모형은 그 흔들림을 오차로 분리하기 때문이다.</p>
+
+<h2><span class="num">05</span>제안 — 모형 하나로 끝내는 구조</h2>
+
+<figure>
+<svg viewBox="0 0 880 210" role="img" aria-label="end-to-end 파이프라인"><rect x="20" y="60" width="170" height="86" fill="#FBFAF7" stroke="#B9B09B"/><text x="105.0" y="88" font-size="13" fill="#101828" text-anchor="middle">EF 시계열 + 공변량</text><rect x="210" y="60" width="170" height="86" fill="#FBFAF7" stroke="#B9B09B"/><text x="295.0" y="88" font-size="13" fill="#101828" text-anchor="middle">8상태 CT-HMM</text><text x="295.0" y="105" font-size="11.5" fill="#5D5E63" text-anchor="middle">4 임상 × 2 치료</text><rect x="430" y="60" width="170" height="86" fill="#FBFAF7" stroke="#B9B09B"/><text x="515.0" y="88" font-size="13" fill="#101828" text-anchor="middle">EM 적합</text><text x="515.0" y="105" font-size="11.5" fill="#5D5E63" text-anchor="middle">E: 기대 전이·노출  M: Poisson</text><rect x="680" y="60" width="180" height="86" fill="#FBFAF7" stroke="#B9B09B"/><text x="770.0" y="88" font-size="13" fill="#101828" text-anchor="middle">환자별 P(t)</text><text x="770.0" y="105" font-size="11.5" fill="#5D5E63" text-anchor="middle">치료 고정 후 재계산</text><line x1="190" y1="103" x2="208" y2="103" stroke="#A16207" stroke-width="2"/><path d="M208,103 l-6,-4 l0,8 z" fill="#A16207"/><line x1="380" y1="103" x2="398" y2="103" stroke="#A16207" stroke-width="2"/><path d="M398,103 l-6,-4 l0,8 z" fill="#A16207"/><line x1="600" y1="103" x2="618" y2="103" stroke="#A16207" stroke-width="2"/><path d="M618,103 l-6,-4 l0,8 z" fill="#A16207"/><text x="440" y="180" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">likelihood 하나 → 신뢰구간도 한 번</text></svg>
+<figcaption><b>그림 5.</b> 잠재상태·관측·치료를 하나의 우도에 넣는다. 2단계(플러그인)로 하면
+오차가 두 번 쌓이고 신뢰구간이 틀어진다.</figcaption>
+</figure>
+
+<p>핵심은 <strong>치료를 전이강도에 넣는 것</strong>이다.</p>
+<p style="font-family:var(--font-mono);font-size:14px;background:var(--surface-1);padding:14px 16px;margin:var(--s3) 0">
+q(i→j | X, A) = q₀(i→j) · exp(β(i→j)·X + γ(i→j)·A)
+</p>
+<p>이렇게 하면 <strong>치료를 0으로 두고 한 번, 1로 두고 한 번</strong> 계산해 차이를 내는 것이
+그대로 환자별 이득이 된다. 별도 인과모형이 필요 없다.</p>
+
+<h3>적합은 EM 두 단계로</h3>
+<ol>
+<li><strong>E단계</strong> — 현재 모수로 각 전이의 기대 횟수와 노출시간을 계산</li>
+<li><strong>M단계</strong> — 그 기대값으로 Poisson 회귀(offset = log 노출일수)를 적합</li>
+<li>우도가 안 오르면 정지. 이게 msm이 쓰는 표준 방식이다.</li>
+</ol>
+
+<h3>12개월을 보려면 90일 절단 대신 가중</h3>
+<p>90일에서 자르면 12개월을 못 본다. 대신 <strong>365일 행정적 중도절단 + IPCW</strong>로
+차등 추적을 가중으로 상쇄한다. 참고로 절단했을 때의 비용은 이렇다.</p>
+<table>
+<thead><tr><th>설계</th><th class="n">N</th><th class="n">12개월 사망</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td>제한 없음</td><td class="n">4,554</td><td class="n">421</td><td>차등 추적 남음</td></tr>
+<tr><td>90일 공통 절단</td><td class="n">3,365</td><td class="n">—</td><td>3개월 표만 가능</td></tr>
+<tr><td>180일 제한</td><td class="n">2,821</td><td class="n">17</td><td>사망 분석 불가</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">06</span>변수 선택 아이디어 — 방향은 맞고 기준이 틀렸다</h2>
+
+<p>"로지스틱 backward나 random forest 중요도로 부모를 고른 뒤 베이즈망"이라는 아이디어는
+<strong>표 칸 폭발을 막는다는 점에서 정확한 처방</strong>이다. 다만 세 가지가 걸린다.</p>
+
+<h3>① 선택 자체가 편향을 만든다</h3>
+<p>같은 데이터에서 결과와 연관된 변수를 골라, 그 데이터로 다시 효과를 추정하면 효과가
+과대추정되고 신뢰구간이 실제보다 좁아진다. 심사에서 반드시 지적되는 항목이다.</p>
+
+<h3>② 결과 예측력으로 고르면 교란 보정이 안 된다</h3>
+<p>교란변수가 되려면 <strong>치료와 결과 둘 다</strong>와 연관돼야 한다. 결과만 잘 맞히는 변수는
+조정에 기여하지 않는다. 골라야 하는 기준은 <code>P(치료 | X)</code>다.</p>
+
+<h3>③ 상관된 변수는 중요도가 쪼개진다</h3>
+<p>LVEDD와 EF가 상관돼 있으면 중요도가 반씩 나뉘어 둘 다 탈락할 수 있다.</p>
+
+<div class="warnbox"><span class="lbl">대신 이렇게</span>
+교란변수는 <b>임상 지식으로 사전 고정</b>한다. 베이즈망 부모는 <b>EF · LVEDD · BNP · 재원일 · 치료 · 결과</b>
+6개로 고정하고, 나머지는 다중상태 회귀에 계수로 넣는다.
+</div>
+
+<h2><span class="num">07</span>다음 단계</h2>
+<ol>
+<li><strong>8상태 CT-HMM 적합</strong> — 4 임상 × 2 치료, q(i→j|X,A)에 공변량</li>
+<li><strong>EM + Poisson M단계</strong> 구현 (기존 코드에서 offset·표준화만 고치면 됨)</li>
+<li><strong>평가</strong> — 홀드아웃 로그우도, 사후예측, 캘리브레이션, 모수 복구</li>
+<li><strong>반사실 계산</strong> — A=0/A=1 두 번 계산해 환자별 Δ표</li>
+<li><strong>중도절단 보정</strong> — IPCW로 365일 지평 유지</li>
+<li><strong>베이즈망은 6노드 그림으로만</strong> — 인과 구조 설명용</li>
+</ol>
+
+<footer>
+<p>수치 출처: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
+환자 단위 데이터는 포함하지 않는다.</p>
+<p>생성 스크립트 <code>src/make_methods_site.py</code> · 결과 JSON <code>results/whatif_multistate.json</code>,
+<code>results/bn_whatif.json</code>, <code>results/cthmm_pilot.json</code></p>
+</footer>
+
+</div>
+</body>
+</html>
