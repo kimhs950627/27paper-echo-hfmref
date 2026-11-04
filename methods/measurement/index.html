@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>수학 노트 — 측정오차·신뢰도·ROC</title>
-<meta name="description" content="분산분해로 측정 잡음을 분리하고, 신뢰도와 재현율을 계산하고, ROC/AUC를 손으로 이해하는 노트.">
+<title>수학 노트 — 측정오차·신뢰도·ROC·DCA</title>
+<meta name="description" content="분산분해로 측정 잡음을 분리하고, 감쇠와 회귀평균, Wilson 구간, ROC/AUC, 결정곡선, conformal을 손계산으로 설명한다.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="수학 노트 — 측정오차·신뢰도·ROC">
-<meta property="og:description" content="분산분해로 측정 잡음을 분리하고, 신뢰도와 재현율을 계산하고, ROC/AUC를 손으로 이해하는 노트.">
+<meta property="og:title" content="수학 노트 — 측정오차·신뢰도·ROC·DCA">
+<meta property="og:description" content="분산분해로 측정 잡음을 분리하고, 감쇠와 회귀평균, Wilson 구간, ROC/AUC, 결정곡선, conformal을 손계산으로 설명한다.">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/methods/measurement/">
 <meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
@@ -35,117 +35,172 @@
 
 <div class="wrap">
 <header class="masthead">
-  <div class="wrap">
-    <p class="kicker">수학 노트 · 구 msm 워크북 대체 · 2026-11-04</p>
-    <h1>측정오차는<br>어떻게 숫자가 되나</h1>
-    <p class="sub">분산분해, 신뢰도, 재현율, ROC. 고3 수학(표준편차·정규분포·확률)만 있으면 전부 따라올 수 있다.
-    100명짜리 장난감 예시로 손계산부터 한다.</p>
-  </div>
+  <p class="kicker">수학 노트 · 구 msm 워크북 대체 · 2026-11-04</p>
+  <h1>측정오차는<br>어떻게 숫자가 되나</h1>
+  <p class="sub">분산분해, 감쇠, 회귀평균, Wilson 구간, ROC/AUC, 결정곡선, conformal.
+  고3 수학(표준편차·정규분포·확률)만 있으면 전부 따라올 수 있다. 모든 계산은 손으로 검산 가능한 숫자로 했다.</p>
 </header>
 
 <section>
-  <h2><span class="num">01</span>우리는 참값을 한 번도 본 적이 없다</h2>
-  <p>심초음파로 재는 EF는 참값이 아니라 <b>참값 + 잡음</b>이다. 같은 사람을 다시 재면 값이 달라지는데,
-  그게 “심장이 변했다”인지 “기계가 흔들렸다”인지 우리는 알 수 없다.</p>
+  <h2><span class="num">01</span>참값은 한 번도 관측되지 않는다</h2>
   <div class="mathbox">
     <span class="lbl">모형</span>
-    관측 EF = 참 EF + ε, &nbsp; ε ~ 평균 0, 표준편차 σ
-    <span class="read">σ가 작으면 관측값을 믿고, 크면 다시 재야 한다.</span>
+    관측 EF = 참 EF + ε, &nbsp; ε ~ N(0, σ²)
+    <span class="read">ε의 평균은 0, 표준편차는 σ. σ가 작으면 관측값을 믿고, 크면 다시 재야 한다.</span>
   </div>
-  <p>문제는 σ를 모른다는 것. 그래서 <b>간격을 짧게</b> 해서 참값이 변하지 않게 만든 뒤 차이를 본다.</p>
+  <p>문제는 σ를 모른다는 것. σ를 알면 관측값 <i>x</i>에서 참값이 어느 구간에 있을 확률을 바로 계산할 수 있다.</p>
+  <div class="mathbox">
+    <span class="lbl">정규분포 계산</span>
+    P(참값 &lt; c | 관측 x) = Φ((c − x) / σ)
+    <span class="read">Φ는 표준정규 누적확률. Φ(−0.135) = 0.446, Φ(0.27) = 0.606.</span>
+  </div>
+  <div class="plain">
+    <span class="lbl">손계산 — EF 41에서 참값이 40 미만일 확률</span>
+    z = (40 − 41) / 7.4 = −0.135 &nbsp;→&nbsp; Φ(−0.135) = <b>0.446</b> (44.6%)
+  </div>
+  <p>이 숫자가 논문의 출발점이다. “EF 41이면 HFrEF”라고 말할 수 있는 확률이 <b>55.4%</b>밖에 안 된다는 뜻이다.</p>
 </section>
 
 <section>
-  <h2><span class="num">02</span>차이의 분산 = 잡음 두 개</h2>
-  <p>두 번 측정의 차이는 ε₂ − ε₁이다. 독립이면 분산이 더해진다.</p>
+  <h2><span class="num">02</span>분산분해 — σ를 꺼내는 방법</h2>
+  <p>두 번 측정의 차이는 ε₂ − ε₁이고, 독립이면 분산이 더해진다.</p>
   <div class="mathbox">
     <span class="lbl">분산분해</span>
     Var(ΔEF) = Var(ε₂) + Var(ε₁) + Var(진짜 변화) = 2σ² + τ²
-    <span class="read">짧은 간격이면 τ ≈ 0 → Var(ΔEF) ≈ 2σ² → σ = SD(ΔEF)/√2</span>
+    <span class="read">짧은 간격이면 τ ≈ 0 → σ = SD(ΔEF) / √2</span>
   </div>
   <div class="plain">
     <span class="lbl">손계산</span>
-    30일 내 쌍에서 ΔEF의 표준편차가 10.49라면<br>
+    30일 내 쌍 12,522개의 ΔEF SD = 10.49<br>
     σ = 10.49 / 1.414 = <b>7.41</b>
   </div>
+  <p>가정이 하나 있다: <b>짧은 간격에서 참값이 변하지 않는다</b>. 검증은 평균 ΔEF로 한다.
+  실제 값이 <b>+0.33%p</b>이므로 “변화 없음”이 데이터와 모순되지 않는다.</p>
+  <div class="note">만약 진짜 변화가 조금이라도 있으면 σ는 <b>과대추정</b>된다(τ²가 더해지므로).
+  보수적 방향이라 결론을 강하게 만든다.</div>
 </section>
 
 <section>
-  <h2><span class="num">03</span>σ가 7.4면 무엇이 문제인가</h2>
-  <p>HFimpEF 기준은 “EF가 10%p 이상 올랐는가”다. 그런데 Δ의 잡음 표준편차는 σ√2 = 10.5다.
-  <b>기준(10)보다 잡음(10.5)이 크다.</b></p>
+  <h2><span class="num">03</span>군 평균은 9명으로 검출된다 — 개인 판정은 안 된다</h2>
+  <p>많이 헷갈리는 지점이라 따로 적는다. “EF가 10%p 변했다”를 <b>군 평균</b>으로 검출하는 데 필요한 표본수는</p>
   <div class="mathbox">
-    <span class="lbl">확신도</span>
-    P(진짜 Δ ≥ 10 | 관측 Δ) = Φ((관측 Δ − 10) / 10.5)
-    <span class="read">Φ는 표준정규 누적확률. 관측 Δ=10이면 50%, 20이면 83%, 25면 92%.</span>
+    <span class="lbl">표본수</span>
+    n = 2(z<sub>1−α/2</sub> + z<sub>1−β</sub>)² σ² / δ²
+    <span class="read">δ=10, σ=7.4, α=.05, power=.8 → n = 2(1.96+0.84)²(54.8)/100 = 8.6 → 9쌍</span>
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>관측 ΔEF</th><th class="n">진짜 ≥10%p일 확률</th></tr></thead>
-      <tbody>
-        <tr><td>10%p</td><td class="n">50%</td></tr>
-        <tr><td>15%p</td><td class="n">68%</td></tr>
-        <tr><td>20%p</td><td class="n">83%</td></tr>
-        <tr><td>25%p</td><td class="n">92%</td></tr>
-      </tbody>
-    </table>
+  <p>즉 <b>9명만 있어도 평균 10%p 상승은 통계적으로 검출</b>된다. 그런데 개인 한 명의 판정은 전혀 다르다.
+  개인에서는 σ√2 = 10.5가 그대로 남아, 관측 Δ가 10이면 참값이 10 이상일 확률이 50%밖에 안 된다.</p>
+  <div class="warnbox">
+    <span class="lbl">구분</span>
+    “군 평균의 차이 검출”과 “개인 판정”은 다른 문제다. 임상 논문이 전자를 보여주면서 후자를 주장하는 경우가 많다.
   </div>
-  <p class="note">이 계산은 “진짜 변화의 사전분포”를 쓰지 않은 단순 버전이다. 사전분포를 넣으면 확신도가 더 낮아진다.</p>
 </section>
 
 <section>
-  <h2><span class="num">04</span>신뢰도 — 관측 분산 중 참값 몫</h2>
+  <h2><span class="num">04</span>신뢰도·감쇠·회귀평균</h2>
   <div class="mathbox">
     <span class="lbl">신뢰도</span>
-    λ = τ² / (τ² + σ²)
-    <span class="read">관측 EF 분산 161.3, σ²=54.9 → τ²=106.4 → λ = 0.66</span>
+    λ = τ² / (τ² + σ²) = 106.4 / 161.3 = 0.66
+    <span class="read">관측 EF 분산 161.3(SD 12.7), 잡음 분산 54.9(σ=7.41²).</span>
   </div>
-  <p>관측 EF가 흔들리는 것 중 <b>34%는 잡음</b>이라는 뜻. 그래서 관측 EF 하나로 예측하는 모형의
-  설명력(R²)은 이론적으로 0.66을 넘을 수 없다. 실제로 선형·GBM 모두 R² 0.11이었다 — 훨씬 낮은데,
-  그 이유는 참 EF 자체가 다음 값을 잘 예측하지 못하기 때문이다.</p>
+  <p><b>감쇠</b>: 관측값끼리의 상관은 참값 상관의 λ배로 줄어든다. 그래서 관측 EF로 다음 EF를 예측하는
+  모형의 R² 상한은 0.66이다. 실제 0.11이었다.</p>
+  <div class="mathbox">
+    <span class="lbl">회귀평균 (Bayes)</span>
+    E[참값 | 관측 x] = μ + λ(x − μ)
+    <span class="read">μ=55, λ=0.66이면 x=30 → E[참값]=55+0.66(30−55)=38.5</span>
+  </div>
+  <p>EF 30을 관측한 환자의 참값 기대는 30이 아니라 <b>38.5</b>다. 그래서 “낮은 EF를 고른 뒤 다음 값을 보면 올라간다”는
+  현상이 생기고, 이걸 회복으로 오독하면 안 된다.</p>
 </section>
 
 <section>
-  <h2><span class="num">05</span>재현율 — 가정 없이 세는 확률</h2>
-  <p>위 계산은 모두 정규분포를 가정한다. 가정을 없애려면 <b>그냥 세면 된다</b>.</p>
+  <h2><span class="num">05</span>재현율과 Wilson 구간</h2>
+  <p>재현율은 그냥 세는 확률이다. 문제는 <b>신뢰구간</b>이다. 비율이 0이나 1에 가까울 때 정규근사(Wald)는 망가지므로
+  Wilson을 쓴다.</p>
+  <div class="mathbox">
+    <span class="lbl">Wilson 95% CI</span>
+    (p̂ + z²/2n ± z√(p̂(1−p̂)/n + z²/4n²)) / (1 + z²/n)
+    <span class="read">z=1.96. HFmrEF 42.5%, n=1,417 → 40.0–45.1%</span>
+  </div>
   <div class="plain">
-    <span class="lbl">예</span>
-    30일 내 재측정 쌍 1,417개 중 첫 검사가 HFmrEF(40–49)였던 것 = 1,417<br>
-    그중 두 번째도 40–49였던 것 → 재현율 42.5%
+    <span class="lbl">손계산 (HFmrEF)</span>
+    p̂=0.425, n=1417<br>
+    √(0.425×0.575/1417 + 3.84/(4×1417²)) = √(0.0001725 + 0.0000005) = 0.01315<br>
+    반폭 = 1.96 × 0.01315 / (1+0.0027) = 0.0257 → <b>39.9–45.1%</b>
   </div>
-  <p>이 숫자는 모형도 분포도 필요 없다. 대신 <b>“30일 안에 다시 잰 사람”이라는 조건</b>이 붙는다.</p>
+  <p>HFrEF 75.8%(n=2,934) → 74.2–77.3%, 정상 92.2%(n=8,171) → 91.6–92.8%.
+  세 구간이 겹치지 않으므로 “HFmrEF만 불안정하다”는 주장은 표본오차로 설명되지 않는다.</p>
 </section>
 
 <section>
-  <h2><span class="num">06</span>ROC와 AUC — 문턱을 안 정해도 되는 지표</h2>
-  <p>모형은 0~1 사이 확률을 내놓는다. 어디서 자를지(문턱) 정하면 민감도와 특이도가 갈린다.
-  ROC는 <b>모든 문턱을 한 번에</b> 그린 곡선이다.</p>
+  <h2><span class="num">06</span>ROC·AUC — 문턱을 정하지 않는 지표</h2>
   <div class="mathbox">
     <span class="lbl">AUC</span>
     AUC = P(사건 환자의 예측확률 &gt; 비사건 환자의 예측확률)
-    <span class="read">0.5 = 동전, 1.0 = 완벽. “무작위로 뽑은 두 사람을 옳게 줄 세울 확률”이다.</span>
+    <span class="read">0.5 = 동전, 1.0 = 완벽. “무작위로 뽑은 두 사람을 옳게 줄 세울 확률”.</span>
   </div>
+  <p>표준오차는 DeLong 법으로 구한다. 이 데이터에서는 fold 표준편차가 0.011–0.017이라
+  랜덤포레스트(0.824)와 XGBoost(0.824)의 차이는 <b>유의하지 않다</b>.</p>
+  <div class="mathbox">
+    <span class="lbl">DeLong (개념)</span>
+    SE² = Var(V₁₀)/n₁ + Var(V₀₁)/n₀
+    <span class="read">V는 각 개인의 “짝지은 상대보다 높을 확률”. 구현은 스크립트에서.</span>
+  </div>
+  <p>AUC가 높아도 임상 효용은 별개다. 그래서 <b>보정(Brier)</b>과 <b>결정곡선</b>을 함께 본다.</p>
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>모형</th><th class="n">AUC</th><th>해석</th></tr></thead>
+      <thead><tr><th>모형</th><th class="n">AUC</th><th class="n">Brier</th><th>해석</th></tr></thead>
       <tbody>
-        <tr><td>거리 규칙</td><td class="n">0.703</td><td>문턱에 가까울수록 위험 — 그것만 씀</td></tr>
-        <tr><td>로지스틱</td><td class="n">0.791</td><td>변수를 선형으로 결합</td></tr>
-        <tr><td>랜덤포레스트</td><td class="n">0.824</td><td>비선형 상호작용까지 사용</td></tr>
+        <tr><td>거리 규칙</td><td class="n">0.703</td><td class="n">—</td><td>문턱 근접도만 사용</td></tr>
+        <tr><td>로지스틱</td><td class="n">0.791</td><td class="n">0.119</td><td>선형 결합</td></tr>
+        <tr><td>랜덤포레스트</td><td class="n">0.824</td><td class="n">0.109</td><td>비선형 상호작용</td></tr>
       </tbody>
     </table>
   </div>
-  <p>AUC가 높다고 임상적으로 유용한 것은 아니다. 그래서 <b>보정(Brier)</b>과 <b>결정곡선(DCA)</b>이 함께 필요하다.</p>
 </section>
 
 <section>
-  <h2><span class="num">07</span>함정 다섯 개</h2>
+  <h2><span class="num">07</span>결정곡선 — 재검의 순이득</h2>
+  <div class="mathbox">
+    <span class="lbl">순이득(Net benefit)</span>
+    NB = TPR·π − FPR·(1−π)· p<sub>t</sub>/(1−p<sub>t</sub>)
+    <span class="read">π는 유병률, p<sub>t</sub>는 “이 확률 이상이면 재검한다”는 문턱.</span>
+  </div>
+  <div class="plain">
+    <span class="lbl">손계산 — p<sub>t</sub>=0.30, π=0.172</span>
+    전부 재검: NB = 0.172 − 0.828 × (0.3/0.7) = 0.172 − 0.355 = <b>−0.183</b><br>
+    상위 20%만: 선택군 PPV 0.503 → 선택군 NB = 0.503 − 0.497×0.4286 = 0.290<br>
+    전체 환자당 NB = 0.20 × 0.290 = <b>+0.058</b>
+  </div>
+  <p>문턱 30%에서 “전부 재검”은 순이득이 <b>음수</b>다(불필요한 재검이 이득을 덮음).
+  상위 20%만 재검하면 양수가 된다. 이게 선별 모델의 존재 이유다.</p>
+</section>
+
+<section>
+  <h2><span class="num">08</span>Conformal — 분포 가정 없는 예측구간</h2>
+  <p>모형이 “확률 62%”라고 할 때, 그 62%가 얼마나 믿을 만한지는 별개다.
+  분할 conformal은 보정셋에서 비순응도 점수를 모아 분위수를 잡는다.</p>
+  <div class="mathbox">
+    <span class="lbl">분할 conformal</span>
+    q = Quantile<sub>⌈(n+1)(1−α)⌉/n</sub>( { 1 − p̂(y<sub>i</sub> | x<sub>i</sub>) } )<br>
+    예측집합 C(x) = { y : 1 − p̂(y|x) ≤ q }
+    <span class="read">α=0.1이면 새 환자의 참 라벨이 C(x)에 들 확률이 최소 90%로 보장된다(교환가능성 가정).</span>
+  </div>
+  <p>이 프로젝트에서는 두 가지에 쓸 예정이다: (1) 재분류 확률의 구간, (2) “재검 필요/불필요” 판정의 보장된 집합.
+  시계열 데이터라 교환가능성이 깨질 수 있으므로 <b>시간 순서 블록</b>으로 보정셋을 잡는다.</p>
+</section>
+
+<section>
+  <h2><span class="num">09</span>함정 일곱 개</h2>
   <ol>
-    <li><b>누수</b> — 종점과 같은 시점에 측정된 값을 입력에 넣으면 AUC가 부풀려진다(0.841 → 0.824).</li>
+    <li><b>누수</b> — 종점과 같은 시점에 측정된 값을 입력에 넣으면 AUC가 부푼다(0.841 → 0.824).</li>
     <li><b>환자 단위 분할</b> — 같은 환자의 쌍이 학습·검증에 나뉘면 성능이 과대평가된다.</li>
     <li><b>선택편향</b> — 재검을 받은 사람만 학습한다. 일반 외래와 다를 수 있다.</li>
-    <li><b>회귀평균</b> — 기준선을 낮은 값으로 고르면 다음 값이 평균 쪽으로 올라간다. 개선처럼 보인다.</li>
-    <li><b>시간과 잡음의 혼동</b> — 30일과 180일의 사건률이 같다는 사실을 확인하지 않으면 진행으로 오독한다.</li>
+    <li><b>회귀평균</b> — 낮은 기준선을 고르면 다음 값이 평균으로 올라간다. 개선처럼 보인다.</li>
+    <li><b>시간과 잡음의 혼동</b> — 30일과 180일 사건률이 같다는 사실을 확인하지 않으면 진행으로 오독한다.</li>
+    <li><b>군 평균 vs 개인</b> — n=9로 평균 차이는 검출되지만 개인 판정은 불가능하다.</li>
+    <li><b>자릿수 선호</b> — 판독자가 5의 배수로 적어 Δ 분포가 이산적이 된다(Δ=10이 18.9%).</li>
   </ol>
 </section>
 

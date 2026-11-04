@@ -217,3 +217,16 @@ figure.fig figcaption .cap{display:block}
     text-transform:uppercase;color:var(--color-text-3)}
   table.ptab td:first-child{font-weight:700;font-size:15px;padding-bottom:3px}
 }
+/* 수식·경고 블록 (연구 계획·데이터 리뷰 페이지에서 사용) */
+.mathbox{background:var(--color-surface-1);border-left:5px solid var(--color-accent);
+  padding:14px 18px;margin:18px 0;font-family:var(--font-mono);font-size:.95rem;line-height:1.85}
+.mathbox .lbl,.warnbox .lbl,.plain .lbl{display:block;font-family:var(--font-mono);font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.mathbox .lbl{color:var(--color-accent-strong)}
+.mathbox .read{display:block;font-family:var(--font-body);font-size:.9rem;color:var(--color-text-2);
+  margin-top:8px;line-height:1.7}
+.warnbox{background:var(--color-surface-1);border-left:5px solid var(--color-negative);padding:14px 18px;margin:18px 0}
+.warnbox .lbl{color:var(--color-negative)}
+.plain{background:var(--color-surface-1);padding:14px 18px;margin:18px 0;
+  font-family:var(--font-mono);font-size:.92rem;line-height:1.9}
+.plain .lbl{color:var(--color-accent-strong)}

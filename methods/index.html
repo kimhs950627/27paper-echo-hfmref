@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>방법론 리포트 — 측정오차 추정과 재분류 예측</title>
-<meta name="description" content="짧은 간격 재측정으로 측정 잡음을 추정하고, 판정 재현율을 정의하고, 누수 없이 재분류를 예측하는 절차.">
+<meta name="description" content="짧은 간격 재측정으로 측정 잡음을 추정하고, 재현율을 정의하고, 누수 없이 재분류를 예측하는 절차와 검증.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="방법론 리포트 — 측정오차 추정과 재분류 예측">
-<meta property="og:description" content="짧은 간격 재측정으로 측정 잡음을 추정하고, 판정 재현율을 정의하고, 누수 없이 재분류를 예측하는 절차.">
+<meta property="og:description" content="짧은 간격 재측정으로 측정 잡음을 추정하고, 재현율을 정의하고, 누수 없이 재분류를 예측하는 절차와 검증.">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/methods/">
 <meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
@@ -35,43 +35,59 @@
 
 <div class="wrap">
 <header class="masthead">
-  <div class="wrap">
-    <p class="kicker">27paper-echo · 방법론 리포트 · 2026-11-04</p>
-    <h1>측정오차를 어떻게<br>숫자로 만드는가</h1>
-    <p class="sub">“EF는 흔들린다”는 말은 논문이 아니다. <b>얼마나</b> 흔들리는지, <b>어떤 판정이</b> 흔들리는지,
-    그리고 <b>다시 재면</b> 얼마나 달라지는지를 추정하는 순서를 적는다.</p>
-    <p class="meta">TTE 179,928검사 · LVEF 133,841 · 재측정 쌍 12,522(30일) / 27,576(180일)</p>
-  </div>
+  <p class="kicker">27paper-echo · 방법론 리포트 · 2026-11-04</p>
+  <h1>측정오차를 어떻게<br>숫자로 만드는가</h1>
+  <p class="sub">“EF는 흔들린다”는 말은 논문이 아니다. <b>얼마나</b> 흔들리는지, <b>어떤 판정이</b> 흔들리는지,
+  그리고 <b>다시 재면</b> 얼마나 달라지는지를 추정하는 순서를 적는다.</p>
+  <p class="meta">TTE 179,928검사 · LVEF 133,841 · 재측정 쌍 12,522(30일) / 27,576(180일)</p>
 </header>
 
 <div class="lede">
-  <p class="lede-title">순서</p>
+  <p class="lede-title">설계 요약</p>
   <ol>
-    <li><b>잡음 크기</b>를 짧은 간격 재측정으로 분리한다 (진짜 변화 ≈ 0 가정이 성립하는 구간).</li>
+    <li><b>σ</b>를 짧은 간격 재측정으로 분리한다(진짜 변화 ≈ 0).</li>
     <li><b>재현율</b>을 정의한다 — 같은 판정이 다시 나올 경험적 확률. 가정이 없다.</li>
-    <li><b>종점</b>을 치료 문턱 교차로 정의한다.</li>
+    <li><b>종점</b>을 치료 문턱(40/50) 교차로 정의한다.</li>
     <li><b>모형</b>은 직전 검사만 입력해 누수를 막고, 환자 단위로 검증한다.</li>
+    <li><b>선별 효율</b>로 임상적 쓸모를 확인한다(NNR·포착률).</li>
   </ol>
 </div>
 
-<section id="noise">
+<section>
   <h2><span class="num">01</span>잡음 분리 — 왜 짧은 간격인가</h2>
-  <p>관측값 = 참값 + 잡음이라 하면, 두 번 측정의 차이는</p>
+  <p>관측값 = 참값 + 잡음이라 하면 두 측정의 차이는 두 잡음의 차이다. 독립이면 분산이 더해진다.</p>
   <div class="mathbox">
     <span class="lbl">분산분해</span>
-    Var(ΔEF) = 2σ² + Var(진짜 변화)
-    <span class="read">간격이 충분히 짧으면 진짜 변화 ≈ 0이므로 Var(ΔEF) ≈ 2σ². 여기서 σ를 얻는다.</span>
+    Var(ΔEF) = 2σ² + Var(진짜 변화) &nbsp;→&nbsp; 짧은 간격이면 Var(ΔEF) ≈ 2σ²
+    <span class="read">σ = SD(ΔEF) / √2. 30일 창에서 SD(Δ)=10.49 → σ = 7.41.</span>
   </div>
-  <p>30일 이내 쌍에서 평균 ΔEF는 +0.33%p로 0에 가깝다 — 이 가정이 데이터로 지지된다.
-  같은 계산을 기간별로 반복하면(1–7일, 1–3개월, 6–12개월) ΔSD가 8.2–10.2로 거의 변하지 않는다.
-  즉 <b>1년 안의 EF 변화는 잡음에 묻혀 검출되지 않는다</b>.</p>
-  <p class="note">추정치: 1회 측정 잡음 SD <b>7.08%p</b>(전체), EF 30–39 구간 <b>7.41</b>. 이후 계산은 보수적으로 7.41을 쓴다.</p>
+  <p>이 가정은 데이터로 검증된다: 30일 내 쌍의 <b>평균 ΔEF = +0.33%p</b>로 0에 가깝다.
+  같은 계산을 간격별로 반복해도 ΔSD가 8.2–10.2로 거의 변하지 않는다 — 1년 안의 실제 변화는 잡음에 묻힌다.</p>
+  <div class="mathbox">
+    <span class="lbl">밴드별 추정 (30일 창)</span>
+    &lt;30: 7.56 · 30–39: 7.41 · 40–49: 6.75 · 50–59: 5.79 · ≥60: 6.20
+    <span class="read">보수적으로 7.41을 전 구간에 적용한다. 낮은 EF에서 더 크므로 과소추정이 아니다.</span>
+  </div>
 </section>
 
-<section id="repro">
-  <h2><span class="num">02</span>재현율 — 가정 없는 확신도</h2>
-  <p>확신도를 사후확률로 정의하면 “진짜 변화의 사전분포”를 정해야 하고, 그 선택에 답이 좌우된다.
-  그래서 <b>주 지표는 관측 가능한 재현율</b>로 둔다.</p>
+<section>
+  <h2><span class="num">02</span>신뢰도와 감쇠 — 왜 R²가 0.11인가</h2>
+  <p>관측 EF의 분산은 참값 분산(τ²)과 잡음 분산(σ²)의 합이다. 신뢰도는 그중 참값 몫이다.</p>
+  <div class="mathbox">
+    <span class="lbl">신뢰도</span>
+    λ = τ² / (τ² + σ²) = 106.4 / (106.4 + 54.9) = 0.66
+    <span class="read">관측 EF 분산 161.3(SD 12.7)에서 참값 몫은 66%, 잡음이 34%.</span>
+  </div>
+  <p>감쇠(attenuation) 때문에 관측값끼리의 상관은 참값 상관의 λ배로 줄어든다.
+  그래서 <b>관측 EF로 다음 EF를 예측하는 모형의 이론적 R² 상한은 0.66</b>이다.
+  실제로 선형 0.112, GBM 0.102였다 — 상한보다 훨씬 낮은데, 그 이유는 참 EF 자체가 시간에 따라
+  잘 예측되지 않기 때문이다(<b>회귀평균</b>). 이 사실이 “EF 값을 예측하는 모델”을 포기한 근거다.</p>
+  <div class="note">회귀평균: 기준선을 낮은 값으로 고르면 다음 값은 평균 쪽으로 올라간다.
+  E[참값|관측] = μ + λ(관측 − μ). EF 30을 고르면 참값 기대는 30이 아니라 더 높다.</div>
+</section>
+
+<section>
+  <h2><span class="num">03</span>재현율 — 가정 없는 확신도</h2>
   <div class="mathbox">
     <span class="lbl">정의</span>
     재현율 = P(재측정 시 같은 EF 범주 | 현재 범주)
@@ -79,59 +95,73 @@
   </div>
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>현재 범주</th><th class="n">n</th><th class="n">재현율</th></tr></thead>
+      <thead><tr><th>현재 범주</th><th class="n">n</th><th class="n">재현율</th><th class="n">95% CI (Wilson)</th></tr></thead>
       <tbody>
-        <tr><td>HFrEF (&lt;40)</td><td class="n">2,934</td><td class="n">75.8%</td></tr>
-        <tr><td>HFmrEF (40–49)</td><td class="n">1,417</td><td class="n"><b>42.5%</b></td></tr>
-        <tr><td>정상 (≥50)</td><td class="n">8,171</td><td class="n">92.2%</td></tr>
+        <tr><td>HFrEF (&lt;40)</td><td class="n">2,934</td><td class="n">75.8%</td><td class="n">74.2–77.3</td></tr>
+        <tr><td>HFmrEF (40–49)</td><td class="n">1,417</td><td class="n"><b>42.5%</b></td><td class="n">40.0–45.1</td></tr>
+        <tr><td>정상 (≥50)</td><td class="n">8,171</td><td class="n">92.2%</td><td class="n">91.6–92.8</td></tr>
       </tbody>
     </table>
   </div>
-  <p>문턱까지 거리로도 단조롭게 갈린다: 0–2%p 62.6%, 5–10%p 77.1%, 10–30%p 91.0%.
-  <b>HFmrEF 판정은 다시 재면 절반 이상이 다른 범주로 간다</b>는 것이 이 논문의 출발점이다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>문턱까지 거리</th><th class="n">n</th><th class="n">재현율</th></tr></thead>
+      <tbody>
+        <tr><td>0–2%p</td><td class="n">1,741</td><td class="n">62.6%</td></tr>
+        <tr><td>2–5%p</td><td class="n">126</td><td class="n">61.1%</td></tr>
+        <tr><td>5–10%p</td><td class="n">3,693</td><td class="n">77.1%</td></tr>
+        <tr><td>10–30%p</td><td class="n">6,710</td><td class="n">91.0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>HFmrEF만 42.5%인 이유는 <b>양쪽에 문턱이 있기 때문</b>이다(40과 50). 폭 10%p 안에 잡음 SD 7.4가 두 번 들어간다.</p>
 </section>
 
-<section id="endpoint">
-  <h2><span class="num">03</span>종점 — 치료 문턱 교차</h2>
-  <p>3분류(40/50)의 경계가 곧 치료 문턱이므로, 범주 변화는 자동으로 임상 문턱 교차가 된다.
-  별도로 ICD 문턱(&lt;35)을 2차 종점으로 둔다.</p>
+<section>
+  <h2><span class="num">04</span>종점 — 치료 문턱 교차</h2>
+  <p>3분류(40/50)의 경계가 곧 치료 문턱이므로 범주 변화는 자동으로 임상 문턱 교차가 된다.
+  ICD 문턱(&lt;35)은 2차 종점으로 둔다.</p>
   <div class="tbl-wrap">
     <table>
       <thead><tr><th>종점</th><th class="n">발생률</th><th>임상 의미</th></tr></thead>
       <tbody>
         <tr><td>40 또는 50 교차 (주)</td><td class="n">17.2%</td><td>ARNI/MRA 적응, HFpEF 경계</td></tr>
         <tr><td>&lt;35 교차 (2차)</td><td class="n">8.7%</td><td>ICD 상담 대상 변화</td></tr>
+        <tr><td>&lt;40 교차</td><td class="n">10.0%</td><td>HFrEF 정의 변화</td></tr>
+        <tr><td>&lt;50 교차</td><td class="n">11.7%</td><td>HFmrEF↔HFpEF</td></tr>
       </tbody>
     </table>
   </div>
   <div class="warnbox">
     <span class="lbl">해석 주의</span>
     이 종점은 <b>측정 불안정성</b>이지 환자 악화가 아니다. “재측정 시 판정이 뒤집힌다”로만 서술한다.
+    30일 창에서는 진짜 변화가 거의 0이므로 사실상 “잡음으로 라벨이 뒤집힘”을 측정한다.
   </div>
 </section>
 
-<section id="model">
-  <h2><span class="num">04</span>모형 — 누수를 먼저 막는다</h2>
-  <p>초기 구현에서 현재 검사의 LVEDD·심박수를 입력으로 넣었더니 AUC가 0.841로 나왔다.
+<section>
+  <h2><span class="num">05</span>특징과 누수 — 0.841은 틀린 값이었다</h2>
+  <p>초기 구현은 현재 검사의 LVEDD·심박수를 입력에 넣어 AUC <b>0.841</b>을 얻었다.
   그 값들은 종점 EF와 <b>같은 시점</b>에 측정되므로 미래 정보가 새어 들어간 것이다.
-  직전 검사 값만 쓰도록 고친 뒤 AUC는 0.824가 됐다.</p>
+  직전 검사 값만 쓰도록 고친 뒤 <b>0.824</b>가 됐다. 0.017이 정직한 성능과 부풀린 성능의 차이다.</p>
   <div class="grid2">
     <div class="card">
       <p class="card-title">입력 (직전 검사만)</p>
       <p>직전 EF, 문턱까지 거리, 간격(일), 직전 LVEDD·LVOT VTI·TR velocity·심박수·수축기혈압·체표면적, 연도</p>
+      <p class="note">현재 검사에서 파생된 어떤 값도 넣지 않는다.</p>
     </div>
     <div class="card">
       <p class="card-title">결측 처리</p>
-      <p>중앙값 대체 + <b>결측 지시자</b>를 별도 변수로 추가. 결측 자체가 검사 프로토콜의 정보를 담기 때문.</p>
+      <p>중앙값 대체 + <b>결측 지시자</b> 10개를 별도 변수로 추가. 최대 결측은 LVOT VTI 64%이며,
+      결측 여부 자체가 검사 프로토콜의 정보를 담는다.</p>
     </div>
   </div>
-  <p>모형은 랜덤포레스트(주)와 XGBoost(민감도). 하이퍼파라미터는 고정값을 썼고, 성능 차이는 fold 표준편차 안이다.</p>
 </section>
 
-<section id="validation">
-  <h2><span class="num">05</span>검증 — 환자 단위로 자른다</h2>
-  <p>같은 환자가 여러 쌍을 만들기 때문에 무작위 분할하면 낙관적 편향이 생긴다.
-  <b>GroupKFold(5)</b>로 환자 단위 분할하고, out-of-fold 예측으로 AUC·Brier를 계산한다.</p>
+<section>
+  <h2><span class="num">06</span>검증 — 환자 단위로 자른다</h2>
+  <p>한 환자가 여러 쌍을 만들기 때문에 무작위 분할하면 낙관적 편향이 생긴다.
+  <b>GroupKFold(5)</b>로 환자 단위 분할하고 out-of-fold 예측으로 AUC·Brier를 계산한다.</p>
   <div class="tbl-wrap">
     <table>
       <thead><tr><th>모형</th><th class="n">30일 AUC</th><th class="n">SD</th><th class="n">180일 AUC</th><th class="n">Brier</th></tr></thead>
@@ -143,26 +173,61 @@
       </tbody>
     </table>
   </div>
-  <p>트리 계열이 로지스틱을 +0.03, 거리 규칙을 +0.12 이긴다. Brier도 낮아 확률 보정이 더 좋다.
-  즉 “문턱에 가깝다” 이상의 비선형 정보가 실제로 존재한다.</p>
+  <p>보정은 Brier와 10분위 표로 확인했다. 1분위 2.6% → 10분위 57.5%로 단조 증가하며,
+  예측확률이 실제 빈도와 크게 어긋나지 않는다.</p>
 </section>
 
-<section id="notdone">
-  <h2><span class="num">06</span>아직 안 한 것</h2>
+<section>
+  <h2><span class="num">07</span>선별 효율 — 임상적 쓸모</h2>
+  <p>AUC는 “줄 세우기” 성능이고, 임상에서 필요한 것은 “몇 명을 다시 재면 몇 건을 잡는가”다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>다시 잴 비율</th><th class="n">포착률</th><th class="n">PPV</th><th class="n">NNR</th></tr></thead>
+      <tbody>
+        <tr><td>상위 10%</td><td class="n">33.3%</td><td class="n">57.5%</td><td class="n">1.7</td></tr>
+        <tr><td>상위 20%</td><td class="n">58.3%</td><td class="n">50.3%</td><td class="n">2.0</td></tr>
+        <tr><td>상위 30%</td><td class="n">74.6%</td><td class="n">42.9%</td><td class="n">2.3</td></tr>
+        <tr><td>전체</td><td class="n">100%</td><td class="n">17.2%</td><td class="n">5.8</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>전체 재검 대비 상위 20% 전략의 효율은 약 <b>2.9배</b>(NNR 5.8 → 2.0)다.
+  이 수치가 “모든 환자 재검”이라는 비현실적 처방을 피하게 해준다.</p>
+</section>
+
+<section>
+  <h2><span class="num">08</span>아직 안 한 것 — 계획과 공식</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>단계</th><th>방법</th><th>출력</th></tr></thead>
+      <tbody>
+        <tr><td>Temporal split</td><td>연도 기준 학습/검증 분리</td><td>외부검증 대체 성능</td></tr>
+        <tr><td>Conformal</td><td>분할 conformal, 비순응도 1−p̂</td><td>보장된 예측집합(coverage 1−α)</td></tr>
+        <tr><td>DCA</td><td>NB = TPR·π − FPR·(1−π)·p<sub>t</sub>/(1−p<sub>t</sub>)</td><td>재검 100건당 순이득</td></tr>
+        <tr><td>SHAP</td><td>TreeSHAP</td><td>변수 기여도</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>세부 수식과 손계산은 <a href="measurement/">수학 노트</a>에 있다.</p>
+</section>
+
+<section>
+  <h2><span class="num">09</span>한계</h2>
   <ul>
-    <li><b>Temporal split</b>: 연도 기준 학습/검증 분리 (외부검증 대체).</li>
-    <li><b>Conformal</b>: 환자별 예측구간과 보장된 coverage.</li>
-    <li><b>DCA</b>: 재측정 100건당 막은 오분류 건수로 임상 효용 계산.</li>
-    <li><b>HFimpEF 접목</b>: ΔEF 10%p 기준이 잡음(ΔSD 10.5)보다 작다는 결과와 연결.</li>
+    <li><b>선택편향</b>: 재검을 받은 사람만 학습한다(입원·증상자 편중).</li>
+    <li><b>단일기관</b>: MIMIC-IV는 미국 단일 의료기관. 외부검증 없음.</li>
+    <li><b>라벨이 잡음</b>: 30일 창에서 라벨 변화는 사실상 잡음이다. 예후로 해석 금지.</li>
+    <li><b>진단코드 부재</b>: HF 진단을 EF와 GDMT 처방으로 대리한다.</li>
+    <li><b>품질·리듬 축 없음</b>: 주관적 품질 등급은 제외, AF 플래그도 없다.</li>
   </ul>
-  <p>수학(분산분해·신뢰도·ROC)은 <a href="measurement/">수학 노트</a>에 따로 정리했다.</p>
 </section>
 
-<section id="repro">
-  <h2><span class="num">07</span>재현</h2>
+<section>
+  <h2><span class="num">10</span>재현</h2>
   <div class="plain">
     <span class="lbl">스크립트</span>
     <code>src/pilot_reclass.py</code> → <code>results/pilot_reclass.json</code>, <code>figures/pilot_roc.png</code><br>
+    <code>src/selection_efficiency.py</code> → <code>results/selection_efficiency.json</code><br>
     <code>src/build_hfimpef.py</code> → <code>results/hfimpef_pairs.csv</code><br>
     <code>src/hfimpef_analysis.py</code> → <code>results/hfimpef.json</code>
   </div>
