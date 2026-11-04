@@ -452,20 +452,76 @@ $$w(t)=\prod_{k\le t}\frac{P(A_k\mid \bar A_{k-1})}{P(A_k\mid \bar A_{k-1},\bar 
 다시 하는 것. 이걸 200번 하면 답이 얼마나 흔들리는지 알 수 있음. 위 표의 95% 구간이 그렇게 나온 값임.
 </div>
 
+<h2><span class="num">11</span>보정 사다리 — 무엇을 넣어도 안 지워지는 것</h2>
+
+<p class="lead">공변량을 한 단계씩 늘려가며 <b>같은 계산을 다섯 번</b> 했다. 4,554명 전체(초음파 2회 이상 있는
+1,377명, 관측 구간 3,358건)에서 돌렸음.</p>
+
+<table>
+<thead><tr><th>단계</th><th class="n">변수</th><th class="n">사망 HR</th><th class="n">회복 HR</th><th class="n">사망 %p</th><th class="n">회복 %p</th></tr></thead>
+<tbody>
+<tr><td>L0 치료만</td><td class="n">0</td><td class="n">1.99</td><td class="n">1.31</td><td class="n">+5.9</td><td class="n">+3.5</td></tr><tr><td>L1 기본</td><td class="n">3</td><td class="n">2.00</td><td class="n">1.23</td><td class="n">+6.5</td><td class="n">+1.4</td></tr><tr><td>L2 + BNP·재원</td><td class="n">5</td><td class="n">2.04</td><td class="n">1.20</td><td class="n">+6.7</td><td class="n">+0.8</td></tr><tr><td>L3 + 신기능·입원력·Na·Hb</td><td class="n">9</td><td class="n">1.87</td><td class="n">1.01</td><td class="n">+6.4</td><td class="n">-2.1</td></tr><tr><td>L4 + 이뇨제·동반질환</td><td class="n">14</td><td class="n">1.91</td><td class="n">0.98</td><td class="n">+6.6</td><td class="n">-2.5</td></tr>
+</tbody>
+</table>
+
+<figure>
+<svg viewBox="0 0 880 330" role="img" aria-label="보정 단계별 치료 위험비"><line x1="90" y1="230.0" x2="730" y2="230.0" stroke="#D6CFBF" stroke-dasharray="4 4"/><text x="80" y="234.0" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="end">1.0</text><line x1="90" y1="155.0" x2="730" y2="155.0" stroke="#D6CFBF"/><text x="80" y="159.0" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="end">1.5</text><line x1="90" y1="80.0" x2="730" y2="80.0" stroke="#D6CFBF"/><text x="80" y="84.0" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="end">2.0</text><text x="726" y="222.0" font-size="10" font-family="monospace" fill="#5D5E63" text-anchor="end">차이 없음 (HR 1.0)</text><polyline points="90.0,81.9 250.0,79.5 410.0,73.5 570.0,99.0 730.0,93.1" fill="none" stroke="#9B2C2C" stroke-width="2.4"/><circle cx="90.0" cy="81.9" r="4" fill="#9B2C2C"/><circle cx="250.0" cy="79.5" r="4" fill="#9B2C2C"/><circle cx="410.0" cy="73.5" r="4" fill="#9B2C2C"/><circle cx="570.0" cy="99.0" r="4" fill="#9B2C2C"/><circle cx="730.0" cy="93.1" r="4" fill="#9B2C2C"/><text x="740.0" y="97.1" font-size="10.5" font-family="monospace" fill="#9B2C2C">1.91</text><polyline points="90.0,182.8 250.0,195.2 410.0,200.4 570.0,228.6 730.0,233.5" fill="none" stroke="#2F6F4E" stroke-width="2.4"/><circle cx="90.0" cy="182.8" r="4" fill="#2F6F4E"/><circle cx="250.0" cy="195.2" r="4" fill="#2F6F4E"/><circle cx="410.0" cy="200.4" r="4" fill="#2F6F4E"/><circle cx="570.0" cy="228.6" r="4" fill="#2F6F4E"/><circle cx="730.0" cy="233.5" r="4" fill="#2F6F4E"/><text x="740.0" y="237.5" font-size="10.5" font-family="monospace" fill="#2F6F4E">0.98</text><text x="90.0" y="280" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text><text x="250.0" y="280" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">3</text><text x="410.0" y="280" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">5</text><text x="570.0" y="280" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">9</text><text x="730.0" y="280" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">14</text><text x="410.0" y="304" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">모형에 넣은 공변량 개수</text><rect x="90" y="14" width="11" height="11" fill="#9B2C2C"/><text x="108" y="24" font-size="11" font-family="monospace" fill="#51555D">HFmrEF→사망</text><rect x="240" y="14" width="11" height="11" fill="#2F6F4E"/><text x="258" y="24" font-size="11" font-family="monospace" fill="#51555D">HFmrEF→정상 회복</text></svg>
+<figcaption><b>그림 9.</b> 공변량을 14개까지 늘려도 <b>사망 위험비는 1.9~2.0에 머물고</b>,
+회복 위험비만 <b>1.31 → 0.98</b>로 1에 수렴한다. 즉 <b>회복 신호는 조건으로 설명되고, 사망 신호는 설명되지 않는다.</b></figcaption>
+</figure>
+
+<h3>두 선이 갈라지는 지점</h3>
+
+<p><b>회복(초록)은 L3에서 무너진다.</b> eGFR·최근 1년 입원력·나트륨·혈색소를 넣는 순간 1.20 → <b>1.01</b>.
+즉 "약을 먹으면 EF가 오른다"는 신호는 <b>신기능이 좋고 최근 입원이 없던 사람이 약을 받았다</b>는 사실로
+설명됐음. 남는 게 없음.</p>
+
+<p><b>사망(빨강)은 안 움직인다.</b> L0 1.99 → L4 1.91. 14개를 넣어도 그대로임.
+95% 구간 <b>1.31 ~ 3.25</b>. 이건 두 가지 중 하나임.</p>
+
+<div class="warnbox"><span class="lbl">해석 두 갈래</span>
+<b>① 진짜 해로움</b> — GDMT가 HFmrEF에서 사망을 늘린다. 기존 RCT와 정면으로 어긋나므로 가능성 낮음.<br><br>
+<b>② 측정 안 된 교란</b> — 가장 유력한 후보는 <b>"약을 시작한 시점의 급성 악화"</b>. 90일 내 시작군은
+대개 <b>입원 중 울혈로 치료를 올린 사람</b>임. 즉 "약"이 아니라 <b>"그때 상태가 나빴다"</b>가 잡힌 것.
+이건 baseline BNP로는 안 잡힘 — BNP는 이미 높고, 문제는 <b>그 시점의 급성기 여부</b>임.
+</div>
+
+<p>이 해석을 숫자로 검증하는 도구가 <b>E-value</b>임. "관찰되지 않은 교란이 이 정도를 설명하려면
+치료·사망 양쪽과 얼마나 강하게 연관돼야 하나"를 계산한 값.</p>
+
+<div class="mathbox"><span class="lbl">E-value</span>
+$$E = HR + \big[HR\,(HR-1)\big]^{1/2}$$
+<span class="read">읽는 법 — HR 1.91이면 E-value <b>3.23</b>. 관찰되지 않은 변수가 치료와 사망 <b>양쪽 모두</b>에
+위험비 3.23 이상으로 연관돼 있어야 이 신호가 설명됨. 급성 심부전 악화는 그 정도 강도가 충분히 가능한
+변수임(입원 사망 위험비 3~5). 즉 <b>반박되지도, 확정되지도 않은 상태</b>.</span></div>
+
+<h3>그래서 다음 검증은 이렇게 한다</h3>
+
+<ol>
+<li><b>신규 시작 vs 기존 유지로 나누기</b> — 이미 약을 먹고 있던 안정 외래 환자에서는 사망 HR이 1에
+가까워야 함. 1에 가까우면 "급성 악화 교란" 가설이 지지됨. 기존 데이터로 바로 가능</li>
+<li><b>Negative control outcome</b> — 약과 무관해야 하는 결과(골절·백내장)에서도 신호가 나오면 교란의 증거</li>
+<li><b>Active comparator</b> — "약 시작 vs 미시작" 대신 "ARNI vs SGLT2i"처럼 둘 다 시작한 사람끼리 비교.
+교란의 방향이 양쪽에 같아져서 상쇄됨</li>
+<li><b>처방 시작일 확보</b> — 시간가변 분석(§10)은 시작일이 있어야 가능. 원본 재다운로드 필요</li>
+</ol>
+
 <h3>정리</h3>
 <ol>
-<li>회복 이득은 <b>조건 보정으로 사라졌다</b> — 약효가 아니라 회귀평균이었음</li>
-<li>사망 신호는 <b>남았다</b> — 측정 못 한 중증도 때문</li>
+<li>회복 이득은 <b>조건 보정으로 완전히 사라졌다</b> (HR 1.31 → 0.98) — 약효가 아니라 회귀평균·환자 선택이었음</li>
+<li>사망 신호는 <b>14개 변수를 넣어도 남았다</b> (HR 1.91, 1.31~3.25) — E-value 3.23</li>
 <li>약을 0/1로 바꾸는 것만으로는 부족 — <b>시간가변 교란</b>이 남아 있음</li>
-<li>그걸 풀려면 <b>처방 시작일</b>이 필요하고, 원본을 지웠으므로 재다운로드가 선행돼야 함</li>
+<li>NYHA는 MIMIC에 <b>없음</b>. 대신 이뇨제·입원력·나트륨으로 울혈을 대리했고, 그래도 안 지워짐</li>
 </ol>
 
 <p>논문에 지금 쓸 수 있는 문장은 여기까지임.</p>
 
 <blockquote style="margin:var(--s3) 0;padding:var(--s3);border-left:4px solid var(--accent);background:var(--surface-1)">
-HFmrEF에서 GDMT 시작과 12개월 회복의 연관성은 기저 EF·좌심실 크기·BNP·재원일수를 보정하면 사라진다
-(+9.6%p → −0.9%p). 반면 사망과의 연관성은 보정 후에도 남는다(HFmrEF→사망 HR 1.69).
-따라서 회복 신호는 회귀평균으로 설명되며, 사망 신호는 측정되지 않은 중증도에 기인할 가능성이 높다.
+HFmrEF에서 GDMT 시작과 12개월 회복의 연관성은 기저 EF·좌심실 크기·나이·BNP·재원일수·eGFR·최근 입원력·
+나트륨·혈색소를 보정하면 사라진다(위험비 1.31 → 0.98). 반면 사망과의 연관성은 같은 보정 후에도 남는다
+(위험비 1.91, 95% CI 1.31–3.25, E-value 3.23). 따라서 회복 신호는 환자 선택과 회귀평균으로 설명되며,
+사망 신호는 측정되지 않은 급성기 중증도에 기인할 가능성이 높다. 이 해석은 신규 시작군과 기존 유지군을
+분리한 민감도 분석으로 검증할 수 있다.
 </blockquote>
 
 
@@ -473,7 +529,7 @@ HFmrEF에서 GDMT 시작과 12개월 회복의 연관성은 기저 EF·좌심실
 <p>수치 출처: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
 환자 단위 데이터는 포함하지 않는다.</p>
 <p>생성 스크립트 <code>src/make_methods_site.py</code> · 결과 JSON <code>results/whatif_multistate.json</code>,
-<code>results/bn_whatif.json</code>, <code>results/cthmm_pilot.json</code>, <code>results/msm_poisson_pilot.json</code></p>
+<code>results/bn_whatif.json</code>, <code>results/cthmm_pilot.json</code>, <code>results/msm_poisson_pilot.json</code>, <code>results/msm_adjust_ladder.json</code></p>
 </footer>
 
 </div>
