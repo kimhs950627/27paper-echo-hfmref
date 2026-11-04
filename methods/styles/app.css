@@ -58,3 +58,27 @@ a{color:var(--accent-strong)}
 .katex{font-size:1.02em}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+.calc{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:var(--s4);margin:var(--s3) 0 var(--s4);align-items:start}
+@media(max-width:820px){.calc{grid-template-columns:1fr}}
+.calc-in{background:var(--surface-1);padding:var(--s3)}
+.calc-in label{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:10px 0 4px}
+.calc-in input,.calc-in select{width:100%;font-family:var(--font-mono);font-size:15px;padding:7px 9px;border:1px solid var(--rule-strong);background:var(--card);color:var(--ink-1);border-radius:2px}
+.calc-in input:focus,.calc-in select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.calc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.calc-actions{display:flex;gap:8px;margin-top:var(--s3)}
+.calc-actions button{font-family:var(--font-mono);font-size:13px;padding:8px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:2px;cursor:pointer}
+.calc-actions button.ghost{background:transparent;color:var(--accent-strong)}
+.calc-note{font-size:.82rem;color:var(--ink-3);margin:10px 0 0;line-height:1.55}
+.calc-out{min-width:0}
+.calc-head,.calc-line{display:grid;grid-template-columns:44px 82px repeat(4,1fr);gap:4px;align-items:baseline}
+.calc-head{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--rule-strong);padding-bottom:6px}
+.calc-head span+span,.calc-line span+span{text-align:right}
+.calc-line{font-family:var(--font-mono);font-size:13.5px;font-variant-numeric:tabular-nums;padding:5px 0;border-bottom:1px solid var(--rule)}
+.calc-line .lab{font-family:var(--font-body);font-size:12.5px;color:var(--ink-2);text-align:left}
+.calc-line.off .lab{color:var(--ink-3)}
+.calc-line.delta{background:var(--accent-soft);border-bottom:1px solid var(--rule-strong);padding:6px 4px;margin:2px 0 8px}
+.calc-line.delta .lab{color:var(--accent-strong);font-weight:600}
+.calc-line .up{color:var(--bad)}
+.calc-line .down{color:var(--ok)}
+.calc-empty{color:var(--ink-3);font-size:.9rem;padding:var(--s3) 0}
+
