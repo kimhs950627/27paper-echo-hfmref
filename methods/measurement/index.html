@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수학 노트 — 측정오차·신뢰도·ROC</title>
+<meta name="description" content="분산분해로 측정 잡음을 분리하고, 신뢰도와 재현율을 계산하고, ROC/AUC를 손으로 이해하는 노트.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="수학 노트 — 측정오차·신뢰도·ROC">
+<meta property="og:description" content="분산분해로 측정 잡음을 분리하고, 신뢰도와 재현율을 계산하고, ROC/AUC를 손으로 이해하는 노트.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/methods/measurement/">
+<meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta name="theme-color" content="#1B1113">
+<link rel="canonical" href="https://kimhs950627.github.io/27paper-echo-hfmref/methods/measurement/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B1113'/%3E%3Cpath d='M6 16 H13 M13 16 L22 8 M13 16 H22 M13 16 L22 24' stroke='%23F6F2EF' stroke-width='2.2' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles/tokens.css">
+<link rel="stylesheet" href="../styles/app.css">
+</head>
+<body>
+<nav class="pagetabs" aria-label="페이지 전환">
+  <div class="wrap">
+    <a class="pt" href="../.././">연구 계획</a>
+    <a class="pt" href="../../review/">데이터 리뷰</a>
+    <a class="pt active" href="../../methods/" aria-current="page">방법론 리포트</a>
+  </div>
+</nav>
+
+<div class="wrap">
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">수학 노트 · 구 msm 워크북 대체 · 2026-11-04</p>
+    <h1>측정오차는<br>어떻게 숫자가 되나</h1>
+    <p class="sub">분산분해, 신뢰도, 재현율, ROC. 고3 수학(표준편차·정규분포·확률)만 있으면 전부 따라올 수 있다.
+    100명짜리 장난감 예시로 손계산부터 한다.</p>
+  </div>
+</header>
+
+<section>
+  <h2><span class="num">01</span>우리는 참값을 한 번도 본 적이 없다</h2>
+  <p>심초음파로 재는 EF는 참값이 아니라 <b>참값 + 잡음</b>이다. 같은 사람을 다시 재면 값이 달라지는데,
+  그게 “심장이 변했다”인지 “기계가 흔들렸다”인지 우리는 알 수 없다.</p>
+  <div class="mathbox">
+    <span class="lbl">모형</span>
+    관측 EF = 참 EF + ε, &nbsp; ε ~ 평균 0, 표준편차 σ
+    <span class="read">σ가 작으면 관측값을 믿고, 크면 다시 재야 한다.</span>
+  </div>
+  <p>문제는 σ를 모른다는 것. 그래서 <b>간격을 짧게</b> 해서 참값이 변하지 않게 만든 뒤 차이를 본다.</p>
+</section>
+
+<section>
+  <h2><span class="num">02</span>차이의 분산 = 잡음 두 개</h2>
+  <p>두 번 측정의 차이는 ε₂ − ε₁이다. 독립이면 분산이 더해진다.</p>
+  <div class="mathbox">
+    <span class="lbl">분산분해</span>
+    Var(ΔEF) = Var(ε₂) + Var(ε₁) + Var(진짜 변화) = 2σ² + τ²
+    <span class="read">짧은 간격이면 τ ≈ 0 → Var(ΔEF) ≈ 2σ² → σ = SD(ΔEF)/√2</span>
+  </div>
+  <div class="plain">
+    <span class="lbl">손계산</span>
+    30일 내 쌍에서 ΔEF의 표준편차가 10.49라면<br>
+    σ = 10.49 / 1.414 = <b>7.41</b>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">03</span>σ가 7.4면 무엇이 문제인가</h2>
+  <p>HFimpEF 기준은 “EF가 10%p 이상 올랐는가”다. 그런데 Δ의 잡음 표준편차는 σ√2 = 10.5다.
+  <b>기준(10)보다 잡음(10.5)이 크다.</b></p>
+  <div class="mathbox">
+    <span class="lbl">확신도</span>
+    P(진짜 Δ ≥ 10 | 관측 Δ) = Φ((관측 Δ − 10) / 10.5)
+    <span class="read">Φ는 표준정규 누적확률. 관측 Δ=10이면 50%, 20이면 83%, 25면 92%.</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>관측 ΔEF</th><th class="n">진짜 ≥10%p일 확률</th></tr></thead>
+      <tbody>
+        <tr><td>10%p</td><td class="n">50%</td></tr>
+        <tr><td>15%p</td><td class="n">68%</td></tr>
+        <tr><td>20%p</td><td class="n">83%</td></tr>
+        <tr><td>25%p</td><td class="n">92%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">이 계산은 “진짜 변화의 사전분포”를 쓰지 않은 단순 버전이다. 사전분포를 넣으면 확신도가 더 낮아진다.</p>
+</section>
+
+<section>
+  <h2><span class="num">04</span>신뢰도 — 관측 분산 중 참값 몫</h2>
+  <div class="mathbox">
+    <span class="lbl">신뢰도</span>
+    λ = τ² / (τ² + σ²)
+    <span class="read">관측 EF 분산 161.3, σ²=54.9 → τ²=106.4 → λ = 0.66</span>
+  </div>
+  <p>관측 EF가 흔들리는 것 중 <b>34%는 잡음</b>이라는 뜻. 그래서 관측 EF 하나로 예측하는 모형의
+  설명력(R²)은 이론적으로 0.66을 넘을 수 없다. 실제로 선형·GBM 모두 R² 0.11이었다 — 훨씬 낮은데,
+  그 이유는 참 EF 자체가 다음 값을 잘 예측하지 못하기 때문이다.</p>
+</section>
+
+<section>
+  <h2><span class="num">05</span>재현율 — 가정 없이 세는 확률</h2>
+  <p>위 계산은 모두 정규분포를 가정한다. 가정을 없애려면 <b>그냥 세면 된다</b>.</p>
+  <div class="plain">
+    <span class="lbl">예</span>
+    30일 내 재측정 쌍 1,417개 중 첫 검사가 HFmrEF(40–49)였던 것 = 1,417<br>
+    그중 두 번째도 40–49였던 것 → 재현율 42.5%
+  </div>
+  <p>이 숫자는 모형도 분포도 필요 없다. 대신 <b>“30일 안에 다시 잰 사람”이라는 조건</b>이 붙는다.</p>
+</section>
+
+<section>
+  <h2><span class="num">06</span>ROC와 AUC — 문턱을 안 정해도 되는 지표</h2>
+  <p>모형은 0~1 사이 확률을 내놓는다. 어디서 자를지(문턱) 정하면 민감도와 특이도가 갈린다.
+  ROC는 <b>모든 문턱을 한 번에</b> 그린 곡선이다.</p>
+  <div class="mathbox">
+    <span class="lbl">AUC</span>
+    AUC = P(사건 환자의 예측확률 &gt; 비사건 환자의 예측확률)
+    <span class="read">0.5 = 동전, 1.0 = 완벽. “무작위로 뽑은 두 사람을 옳게 줄 세울 확률”이다.</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>모형</th><th class="n">AUC</th><th>해석</th></tr></thead>
+      <tbody>
+        <tr><td>거리 규칙</td><td class="n">0.703</td><td>문턱에 가까울수록 위험 — 그것만 씀</td></tr>
+        <tr><td>로지스틱</td><td class="n">0.791</td><td>변수를 선형으로 결합</td></tr>
+        <tr><td>랜덤포레스트</td><td class="n">0.824</td><td>비선형 상호작용까지 사용</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>AUC가 높다고 임상적으로 유용한 것은 아니다. 그래서 <b>보정(Brier)</b>과 <b>결정곡선(DCA)</b>이 함께 필요하다.</p>
+</section>
+
+<section>
+  <h2><span class="num">07</span>함정 다섯 개</h2>
+  <ol>
+    <li><b>누수</b> — 종점과 같은 시점에 측정된 값을 입력에 넣으면 AUC가 부풀려진다(0.841 → 0.824).</li>
+    <li><b>환자 단위 분할</b> — 같은 환자의 쌍이 학습·검증에 나뉘면 성능이 과대평가된다.</li>
+    <li><b>선택편향</b> — 재검을 받은 사람만 학습한다. 일반 외래와 다를 수 있다.</li>
+    <li><b>회귀평균</b> — 기준선을 낮은 값으로 고르면 다음 값이 평균 쪽으로 올라간다. 개선처럼 보인다.</li>
+    <li><b>시간과 잡음의 혼동</b> — 30일과 180일의 사건률이 같다는 사실을 확인하지 않으면 진행으로 오독한다.</li>
+  </ol>
+</section>
+
+<p><a href="../">← 방법론 리포트로</a></p>
+<footer>
+  <p>데이터: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
+  환자 단위 데이터는 공개하지 않는다 — 이 페이지에는 집계 통계만 있다.</p>
+  <p>생성: <code>src/make_site_reclass.py</code></p>
+  <p>27paper-echo · 2026-11-04</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -82,3 +82,10 @@ a{color:var(--accent-strong)}
 .calc-line .down{color:var(--ok)}
 .calc-empty{color:var(--ink-3);font-size:.9rem;padding:var(--s3) 0}
 
+/* 탭 내비게이션 — 메인 사이트와 동일한 위치/역할 */
+.pagetabs{background:var(--surface-3);border-bottom:1px solid var(--rule-strong);position:relative;z-index:2}
+.pagetabs .wrap{display:flex;align-items:stretch;padding-block:0}
+.pagetabs .pt{font-family:var(--font-mono);font-size:13px;letter-spacing:.02em;padding:11px 18px;
+  text-decoration:none;color:var(--ink-2);border-bottom:3px solid transparent}
+.pagetabs .pt:hover{color:var(--ink-1)}
+.pagetabs .pt.active{color:var(--accent-strong);border-bottom-color:var(--accent);background:var(--accent-soft)}

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EF 40–49는 두 갈래로 갈라진다 — HFmrEF 다중상태·CT-HMM</title>
-<meta name="description" content="HFmrEF(EF 40–49)에서 진행·회복·사망을 다중상태 모형과 연속시간 은닉 마르코프 모형으로 예측하는 연구 설계. MIMIC-IV-ECHO 실측 5,315명.">
+<title>EF 41, 이 숫자로 결정해도 되나 — 재분류 예측 연구</title>
+<meta name="description" content="EF가 치료 문턱 근처일 때 재측정이 판정을 바꿀 확률을 예측한다. MIMIC-IV-ECHO 재측정 12,522쌍, 랜덤포레스트 AUC 0.824.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="EF 40–49는 두 갈래로 갈라진다">
-<meta property="og:description" content="진행 21% · 회복 37% · 사망 31% — 세 갈래를 동시에 예측하고, 다음 검사 시점을 정한다.">
+<meta property="og:title" content="EF 41, 이 숫자로 결정해도 되나 — 재분류 예측 연구">
+<meta property="og:description" content="EF가 치료 문턱 근처일 때 재측정이 판정을 바꿀 확률을 예측한다. MIMIC-IV-ECHO 재측정 12,522쌍, 랜덤포레스트 AUC 0.824.">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/">
 <meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
@@ -35,275 +35,118 @@
 
 <header class="masthead">
   <div class="wrap">
-    <p class="kicker">MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 · 2026-11</p>
-    <h1>EF 40–49는<br><em>두 갈래</em>로 갈라진다</h1>
-    <p class="sub">심부전 with mildly reduced EF(HFmrEF)는 가이드라인이 <b>“고려할 수 있다”</b>고만 적어둔
-    유일한 구간이다. 규칙이 없으니 모델이 필요하다. 이 연구는 <b>HFrEF로 진행할 확률</b>과
-    <b>회복할 확률</b>을 상태 전이로 동시에 추정하고, 다음 검사 시점을 정한다.</p>
-
+    <p class="kicker">MIMIC-IV-ECHO v1.0.1 · 2026-11</p>
+    <h1>EF 41,<br><em>이 숫자로 결정해도 되나</em></h1>
+    <p class="sub">같은 환자를 다시 재면 <b>HFmrEF 판정의 절반 이상이 다른 범주로 간다</b>.
+    이 연구는 재측정이 판정을 바꿀 확률을 예측해, 약을 바꾸기 전에 <b>다시 잴지 그냥 갈지</b>를 정한다.</p>
     <div class="statband">
-      <div><div class="v">5,315</div><div class="l">HFmrEF 첫 확인<br>분석 코호트</div></div>
-      <div><div class="v p">11.6%</div><div class="l">12개월 진행<br>(1,139명 관찰)</div></div>
-      <div><div class="v r">23.0%</div><div class="l">12개월 회복<br>(1,988명 관찰)</div></div>
-      <div><div class="v">22.2%</div><div class="l">12개월 사망<br>진행보다 많음</div></div>
+      <div><div class="v">12,522</div><div class="l">30일 내 재측정 쌍<br>7,923명</div></div>
+      <div><div class="v r">42.5%</div><div class="l">HFmrEF 판정 재현율<br>(다시 재면 유지되는 비율)</div></div>
+      <div><div class="v p">17.2%</div><div class="l">치료 문턱 교차<br>30일 = 180일</div></div>
+      <div><div class="v">0.824</div><div class="l">랜덤포레스트 AUC<br>(거리 규칙 0.703)</div></div>
     </div>
   </div>
 </header>
 
 <main class="wrap">
 
-<section id="problem">
-  <h2><span class="n">01</span>왜 이 구간이 비어 있나</h2>
-  <p class="lead">EF가 40% 미만이면 4제 요법이 명시적 적응이고, 50% 이상이면 4제 근거가 약하다.
-  40–49%는 그 사이 — 2023 ESC/HFA는 “may be considered”로 남겨두었다.</p>
-  <p>임상의가 실제로 마주하는 질문은 “이 환자가 HFrEF인가”가 아니라 <b>“지금 세게 갈까, 회복을 기다릴까”</b>다.
-  기다리면 EF가 50% 위로 올라와 약을 줄일 수 있고, 놓치면 4제·ICD 적응 시점을 잃는다.</p>
+<section id="question">
+  <h2><span class="num">01</span>질문은 “EF가 얼마인가”가 아니다</h2>
+  <p class="lead">처방의가 마주치는 순간은 “EF 41이다”가 아니라 <b>“이 41로 ARNI를 시작할까, 다시 잴까”</b>다.
+  판정이 흔들리면 약 시작도 흔들리는데, 지금은 그 흔들림의 크기를 알 방법이 없다.</p>
+  <p>가이드라인은 EF 문턱으로 적응을 정한다 — ICD는 35%, ARNI·MRA는 40%, HFpEF 경계는 50%.
+  그런데 같은 검사실에서 같은 환자를 다시 재면 값이 몇 %p씩 움직인다. 그래서 문턱에 걸친 환자에게는
+  <b>측정값이 곧 결정</b>이고, 측정오차가 곧 치료 오류가 된다.</p>
   <div class="box">
-    <p><b>이 연구가 바꾸려는 것</b> — 심초음파 결과지가 나온 순간, 같은 검사에서 얻은 구조 지표로
-    “12개월 안에 어느 상태에 있을 확률”을 계산해 <b>증량 여부</b>와 <b>다음 심초음파 시점</b>을 출력한다.</p>
+    <p><b>이 연구가 만드는 정보</b> — 검사 하나를 입력하면 “이 판정이 다시 재면 뒤집힐 확률”이 나온다.
+    확률이 높으면 치료 변경 전에 재측정·정량 재검토를 먼저, 낮으면 바로 진행한다.</p>
   </div>
 </section>
 
-<section id="states">
-  <h2><span class="n">02</span>상태는 네 개, 죽음만 흡수된다</h2>
-  <p>HFmrEF는 한 방향으로 가지 않는다. 전이를 세어보면 진행도 회복도 <b>되돌아온다</b>.</p>
-  <figure class="fig">
-  <div class="chart chart-wide"><svg viewBox="0 0 900 440" role="img" aria-label="4상태 전이도"><defs><marker id="a2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"/></marker></defs><rect x="40" y="130" width="150" height="64" style="fill:var(--color-positive)"/><text x="115.0" y="158" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">정상</text><text x="115.0" y="177" font-family="IBM Plex Mono, monospace" font-size="11" fill="#fff" opacity=".82" text-anchor="middle">EF ≥ 50</text><rect x="375" y="130" width="150" height="64" style="fill:var(--color-accent)"/><text x="450.0" y="158" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">HFmrEF</text><text x="450.0" y="177" font-family="IBM Plex Mono, monospace" font-size="11" fill="#fff" opacity=".82" text-anchor="middle">EF 40–49</text><rect x="710" y="130" width="150" height="64" style="fill:var(--color-negative)"/><text x="785.0" y="158" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">HFrEF</text><text x="785.0" y="177" font-family="IBM Plex Mono, monospace" font-size="11" fill="#fff" opacity=".82" text-anchor="middle">EF < 40</text><rect x="700" y="320" width="150" height="62" style="fill:var(--color-text-1)"/><text x="775.0" y="348" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">사망</text><text x="775.0" y="367" font-family="IBM Plex Mono, monospace" font-size="11" fill="#fff" opacity=".82" text-anchor="middle">흡수 상태</text><path d="M200 150 Q 283.0 112 366 150" fill="none" style="stroke:var(--color-accent)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="282" y="100" font-family="IBM Plex Mono, monospace" font-size="11.5" style="fill:var(--color-accent)" text-anchor="middle">2,622</text><path d="M366 176 Q 283.0 214 200 176" fill="none" style="stroke:var(--color-accent)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="282" y="232" font-family="IBM Plex Mono, monospace" font-size="11.5" style="fill:var(--color-accent)" text-anchor="middle">2,192</text><path d="M534 150 Q 617.0 112 700 150" fill="none" style="stroke:var(--color-negative)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="617" y="100" font-family="IBM Plex Mono, monospace" font-size="11.5" style="fill:var(--color-negative)" text-anchor="middle">1,327</text><path d="M700 176 Q 617.0 214 534 176" fill="none" style="stroke:var(--color-negative)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="617" y="232" font-family="IBM Plex Mono, monospace" font-size="11.5" style="fill:var(--color-negative)" text-anchor="middle">1,379</text><path d="M115 130 Q 452.5 -10 790 130" fill="none" style="stroke:var(--color-text-3)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="452" y="38" font-family="IBM Plex Mono, monospace" font-size="11.5" style="fill:var(--color-text-3)" text-anchor="middle">1,539</text><path d="M792 200 Q 460.0 352 128 200" fill="none" style="stroke:var(--color-text-3)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="452" y="304" font-family="IBM Plex Mono, monospace" font-size="11.5" style="fill:var(--color-text-3)" text-anchor="middle">1,109</text><path d="M524 196 Q 615.0 268 706 322" fill="none" style="stroke:var(--color-text-1)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><path d="M788 194 Q 788.0 257 788 320" fill="none" style="stroke:var(--color-text-1)" stroke-width="2" marker-end="url(#a2)" opacity=".78"/><text x="40" y="418" font-size="11" style="fill:var(--color-text-3)">숫자 = 인접 검사 전이 횟수 · 위쪽 호는 오른쪽으로, 아래쪽 호는 왼쪽으로 가는 전이 · 죽음(1,642건)만 흡수</text></svg></div>
-  <figcaption><span class="fno">그림 1</span><b>네 상태를 오가는 화살표</b><span class="cap">화살표 위 숫자는 실제로 관찰된 전이 횟수다. HFmrEF에서 HFrEF로 간 1,327건보다, HFrEF에서 HFmrEF로 돌아온 1,379건이 더 많다.</span></figcaption>
-</figure>
-<div class="box plain"><p><b>쉽게 말하면</b> — 계단과 같음. 내려갔다가 다시 올라올 수 있고, 유일하게 돌아올 수 없는 문이 사망임. 그래서 ‘진행’과 ‘회복’은 결승선이 아니라 지나가는 칸임.</p></div>
-  <p class="note">HFrEF로 갔다가 HFmrEF·정상으로 돌아온 전이 <b>2,488건</b>,
-  정상에서 다시 떨어진 전이 <b>4,161건</b>.
-  그래서 “진행/회복”은 종착점이 아니라 <b>일시적 상태</b>이고, 다중상태 모형으로 다뤄야 한다.</p>
-</section>
-
-<section id="grid">
-  <h2><span class="n">03</span>EF는 격자 위에 있다</h2>
-  <p>판독값을 세어보니 <b>93.9%가 5의 배수</b>였다. 즉 “EF 40–49”는 실질적으로 <b>40 아니면 45</b> 두 값이다.</p>
-  <figure class="fig">
-  <div class="chart chart-wide"><svg viewBox="0 0 900 320" role="img" aria-label="EF 판독값 분포: 5% 배수가 93.9%"><line x1="60" y1="230" x2="620" y2="230" style="stroke:var(--color-text-1)" stroke-width="2"/><line x1="60" y1="34" x2="60" y2="230" style="stroke:var(--color-text-1)" stroke-width="1"/><rect x="62.0" y="222.8" width="39.1" height="7.2" style="fill:var(--color-text-1)" opacity="0.55"/><text x="81.5" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">15</text><rect x="105.1" y="214.8" width="39.1" height="15.2" style="fill:var(--color-text-1)" opacity="0.55"/><text x="124.6" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">20</text><rect x="148.2" y="212.1" width="39.1" height="17.9" style="fill:var(--color-text-1)" opacity="0.55"/><text x="167.7" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">25</text><rect x="191.2" y="205.2" width="39.1" height="24.8" style="fill:var(--color-text-1)" opacity="0.55"/><text x="210.8" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">30</text><rect x="234.3" y="204.9" width="39.1" height="25.1" style="fill:var(--color-text-1)" opacity="0.55"/><text x="253.8" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">35</text><rect x="277.4" y="197.5" width="39.1" height="32.5" style="fill:var(--color-accent)" opacity="1"/><text x="296.9" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">40</text><rect x="320.5" y="197.0" width="39.1" height="33.0" style="fill:var(--color-accent)" opacity="1"/><text x="340.0" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">45</text><rect x="363.5" y="171.8" width="39.1" height="58.2" style="fill:var(--color-text-1)" opacity="0.55"/><text x="383.1" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">50</text><rect x="406.6" y="34.0" width="39.1" height="196.0" style="fill:var(--color-text-1)" opacity="0.55"/><text x="426.2" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">55</text><rect x="449.7" y="46.3" width="39.1" height="183.7" style="fill:var(--color-text-1)" opacity="0.55"/><text x="469.2" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">60</text><rect x="492.8" y="150.0" width="39.1" height="80.0" style="fill:var(--color-text-1)" opacity="0.55"/><text x="512.3" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">65</text><rect x="535.8" y="182.5" width="39.1" height="47.5" style="fill:var(--color-text-1)" opacity="0.55"/><text x="555.4" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">70</text><rect x="578.9" y="194.0" width="39.1" height="36.0" style="fill:var(--color-text-1)" opacity="0.55"/><text x="598.5" y="246" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">75</text><rect x="660" y="52" width="200" height="34" style="fill:var(--color-text-1)" opacity=".85"/><rect x="660" y="86" width="200" height="34" style="fill:var(--color-accent)"/><text x="660" y="40" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)">EF 기록 방식</text><text x="670" y="74" font-family="IBM Plex Mono, monospace" font-size="13" style="fill:var(--color-text-on-inverse)">5% 배수 · 93.9%</text><text x="670" y="108" font-family="IBM Plex Mono, monospace" font-size="13" style="fill:#fff">그 외 · 6.1%</text><text x="660" y="150" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)">총 133,841건</text><text x="660" y="172" font-size="11" style="fill:var(--color-text-3)">36–39% 구간은 전체의 0.2%뿐</text><text x="660" y="188" font-size="11" style="fill:var(--color-text-3)">→ 40과 45만 사실상 존재</text><text x="60" y="302" font-size="11" style="fill:var(--color-text-3)">가로: EF(%) · 세로: 판독 건수 · 주황 = HFmrEF 구간(40–49)</text></svg></div>
-  <figcaption><span class="fno">그림 2</span><b>EF 판독값은 눈금 위에 찍힌다</b><span class="cap">전체 133,841건의 EF 판독을 모두 세어 막대로 그린 것. 5의 배수에 찍힌 값이 93.9%이고, 36–39 구간은 0.2%뿐이다.</span></figcaption>
-</figure>
-<div class="box plain"><p><b>쉽게 말하면</b> — 체중계가 5kg 눈금으로만 표시되는 셈임. 44.6도 45로 찍히니 ‘한 칸(5%p)’은 반올림 오차와 같은 크기이고, 한 칸이 곧 진단 범주 변경임.</p></div>
-
-  <p>그래서 <b>한 칸(5%p) 재판독이 곧 진단 범주 변경</b>이 된다. 실제로 이렇게 갈린다.</p>
-  <figure class="fig">
-  <div class="chart chart-wide"><svg viewBox="0 0 900 320" role="img" aria-label="판독 구간별 다음 검사에서 EF 40 미만이 되는 비율"><line x1="90" y1="240" x2="790" y2="240" style="stroke:var(--color-text-1)" stroke-width="2"/><text x="82" y="40" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">80%</text><text x="82" y="135.0" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">40%</text><text x="82" y="240" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">0%</text><rect x="104.0" y="46.5" width="112.0" height="193.5" style="fill:var(--color-text-3)" opacity="0.45"/><text x="160.0" y="38.5" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)" text-anchor="middle">73.7%</text><text x="160.0" y="258" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-1)" text-anchor="middle"><36</text><text x="160.0" y="273" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">n=9,191</text><rect x="244.0" y="94.7" width="112.0" height="145.3" style="fill:var(--color-text-3)" opacity="0.45"/><text x="300.0" y="86.7" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)" text-anchor="middle">55.4%</text><text x="300.0" y="258" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-1)" text-anchor="middle">36–39</text><text x="300.0" y="273" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">n=159</text><rect x="384.0" y="167.9" width="112.0" height="72.1" style="fill:var(--color-accent)" opacity="1"/><text x="440.0" y="159.9" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)" text-anchor="middle">27.5%</text><text x="440.0" y="258" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-1)" text-anchor="middle">40–44</text><text x="440.0" y="273" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">n=3,097</text><rect x="524.0" y="197.7" width="112.0" height="42.3" style="fill:var(--color-accent)" opacity="1"/><text x="580.0" y="189.7" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)" text-anchor="middle">16.1%</text><text x="580.0" y="258" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-1)" text-anchor="middle">45–49</text><text x="580.0" y="273" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">n=2,951</text><rect x="664.0" y="231.6" width="112.0" height="8.4" style="fill:var(--color-text-3)" opacity="0.45"/><text x="720.0" y="223.6" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)" text-anchor="middle">3.2%</text><text x="720.0" y="258" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-1)" text-anchor="middle">≥50</text><text x="720.0" y="273" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="middle">n=48,014</text><text x="90" y="302" font-size="11" style="fill:var(--color-text-3)">36–39%로 판독된 환자의 44.7%가 다음 검사에서 40% 이상으로 돌아옴 — 한 칸 차이가 곧 범주 변경</text></svg></div>
-  <figcaption><span class="fno">그림 3</span><b>경계에 서면 다음 검사에서 어느 쪽으로도 넘어간다</b><span class="cap">지금 판독된 구간별로, 다음 심초음파에서 EF가 40 미만으로 떨어지는 비율. 40–44는 27.5%, 45–49는 16.1%인데 36–39는 55.4%가 다시 40 이상으로 돌아온다.</span></figcaption>
-</figure>
-<div class="box plain"><p><b>쉽게 말하면</b> — 절벽 끝에 서면 바람만 불어도 넘어감. 36–39는 ‘떨어졌다’기보다 ‘경계에서 흔들리는 중’이고, 40–44는 ‘아직은 안쪽이지만 언제든 넘어갈 자리’임.</p></div>
-
-  <div class="box warn">
-    <p><b>여기가 이 논문의 급소</b> — 같은 상태에 머문 두 검사의 |ΔEF| 중앙값이 <b>5%p</b>이고
-    <b>62.4%가 5%p 이상</b> 움직인다. 41 → 39는 사람 눈의 반올림 한 칸과 구별되지 않는데,
-    우리는 지금 그걸 “HFrEF 진행”이라고 라벨링하고 있다.</p>
+<section id="evidence">
+  <h2><span class="num">02</span>근거 네 개</h2>
+  <div class="cards">
+    <div class="card">
+      <p class="tag">측정오차</p>
+      <p><b>1회 측정 잡음 SD 7.1%p</b><br>
+      EF &lt;30 구간 7.6, 30–39 7.4, 40–49 6.8. 낮은 EF일수록 더 흔들린다.</p>
+    </div>
+    <div class="card">
+      <p class="tag">재현율</p>
+      <p><b>HFmrEF 42.5%</b><br>
+      HFrEF 75.8%, 정상 92.2%. 40–49만 유독 불안정하다.</p>
+    </div>
+    <div class="card">
+      <p class="tag">시간 무관</p>
+      <p><b>30일 = 180일 = 17.2%</b><br>
+      관찰 기간을 6배 늘려도 문턱 교차율이 같다. 진행이 아니라 잡음이다.</p>
+    </div>
   </div>
 </section>
 
 <section id="model">
-  <h2><span class="n">04</span>모델은 3층</h2>
-  <p class="lead">측정오차를 무시한 라벨로 결론을 내면 틀린다. 그래서 <b>해석 가능한 1층</b>과
-  <b>오차를 보정하는 2층</b>을 함께 돌리고, 둘의 차이를 결과로 보고한다.</p>
-
-  <h3>1층 — 다중상태 모형 (투명, 심사 방어용)</h3>
-  <p>상태를 관찰된 EF 범주로 두고 전이강도를 추정한다. 경쟁위험은 이 모형의 특수한 경우이므로,
-  누적발생함수는 전이확률행렬에서 그대로 나온다.</p>
-  <pre class="formula">CIF_k(t) = [ exp(Q·t) ]_&#123;s0 → k&#125;        q_ij(X) = q_ij0 · exp(X β_ij)</pre>
-  <figure class="fig">
-  <div class="chart chart-wide"><svg viewBox="0 0 900 340" role="img" aria-label="누적발생함수 곡선"><line x1="70" y1="254" x2="790" y2="254" style="stroke:var(--color-text-1)" stroke-width="2"/><line x1="70" y1="24" x2="70" y2="254" style="stroke:var(--color-text-1)" stroke-width="1"/><line x1="70.0" y1="254" x2="70.0" y2="260" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="70.0" y="276" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)" text-anchor="middle">0</text><line x1="250.0" y1="254" x2="250.0" y2="260" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="250.0" y="276" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)" text-anchor="middle">12</text><line x1="430.0" y1="254" x2="430.0" y2="260" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="430.0" y="276" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)" text-anchor="middle">24</text><line x1="610.0" y1="254" x2="610.0" y2="260" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="610.0" y="276" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)" text-anchor="middle">36</text><line x1="790.0" y1="254" x2="790.0" y2="260" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="790.0" y="276" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:var(--color-text-3)" text-anchor="middle">48</text><line x1="70" y1="254.0" x2="790" y2="254.0" style="stroke:var(--color-text-3)" stroke-width=".5" opacity=".4"/><text x="60" y="258.0" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">0%</text><line x1="70" y1="182.3" x2="790" y2="182.3" style="stroke:var(--color-text-3)" stroke-width=".5" opacity=".4"/><text x="60" y="186.3" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">10%</text><line x1="70" y1="110.5" x2="790" y2="110.5" style="stroke:var(--color-text-3)" stroke-width=".5" opacity=".4"/><text x="60" y="114.5" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">20%</text><line x1="70" y1="38.8" x2="790" y2="38.8" style="stroke:var(--color-text-3)" stroke-width=".5" opacity=".4"/><text x="60" y="42.8" font-family="IBM Plex Mono, monospace" font-size="10" style="fill:var(--color-text-3)" text-anchor="end">30%</text><polyline points="70.0,254.0 85.0,223.2 100.0,213.1 115.0,206.5 130.0,199.9 145.0,194.6 160.0,189.9 175.0,185.4 190.0,181.1 205.0,178.6 220.0,175.7 235.0,172.9 250.0,170.9 265.0,168.4 280.0,164.9 295.0,161.2 310.0,158.5 325.0,156.3 340.0,153.7 355.0,152.4 370.0,150.5 385.0,147.8 400.0,146.6 415.0,145.2 430.0,144.0 445.0,141.9 460.0,140.5 475.0,139.7 490.0,138.3 505.0,136.9 520.0,136.3 535.0,135.0 550.0,133.1 565.0,132.5 580.0,131.2 595.0,130.1 610.0,129.0 625.0,128.0 640.0,126.7 655.0,126.2 670.0,125.5 685.0,124.7 700.0,123.9 715.0,123.2 730.0,122.4 745.0,122.3 760.0,121.7 775.0,120.9 790.0,120.3" fill="none" style="stroke:var(--color-negative)" stroke-width="2.5"/><circle cx="250.0" cy="170.9" r="4" style="fill:var(--color-negative)"/><polyline points="70.0,254.0 85.0,199.5 100.0,177.9 115.0,161.3 130.0,149.3 145.0,139.2 160.0,130.0 175.0,121.5 190.0,114.3 205.0,107.0 220.0,101.1 235.0,96.0 250.0,89.1 265.0,83.2 280.0,77.7 295.0,73.2 310.0,70.6 325.0,67.4 340.0,64.8 355.0,61.2 370.0,58.2 385.0,56.3 400.0,52.8 415.0,50.1 430.0,47.3 445.0,44.6 460.0,42.3 475.0,40.0 490.0,38.9 505.0,36.9 520.0,35.4 535.0,32.8 550.0,30.9 565.0,29.2 580.0,27.7 595.0,26.2 610.0,25.0 625.0,23.4 640.0,21.9 655.0,20.9 670.0,19.0 685.0,18.0 700.0,16.9 715.0,15.1 730.0,14.3 745.0,13.0 760.0,12.0 775.0,11.1 790.0,9.5" fill="none" style="stroke:var(--color-positive)" stroke-width="2.5"/><circle cx="250.0" cy="89.1" r="4" style="fill:var(--color-positive)"/><polyline points="70.0,254.0 85.0,186.3 100.0,165.9 115.0,151.0 130.0,141.9 145.0,132.4 160.0,124.2 175.0,118.5 190.0,113.2 205.0,107.2 220.0,103.7 235.0,99.6 250.0,94.5 265.0,91.7 280.0,89.2 295.0,86.9 310.0,85.4 325.0,83.3 340.0,81.3 355.0,80.2 370.0,78.3 385.0,76.1 400.0,74.9 415.0,73.8 430.0,72.3 445.0,71.0 460.0,70.1 475.0,69.1 490.0,68.0 505.0,67.5 520.0,66.5 535.0,65.9 550.0,65.1 565.0,64.7 580.0,64.1 595.0,63.2 610.0,62.4 625.0,61.8 640.0,61.2 655.0,59.8 670.0,58.5 685.0,57.9 700.0,57.6 715.0,56.7 730.0,56.3 745.0,55.5 760.0,54.9 775.0,54.0 790.0,54.0" fill="none" style="stroke:var(--color-text-1)" stroke-width="2.5"/><circle cx="250.0" cy="94.5" r="4" style="fill:var(--color-text-1)"/><rect x="80" y="28" width="300" height="68" style="fill:var(--color-surface-0)" opacity=".93"/><line x1="88" y1="40" x2="116" y2="40" style="stroke:var(--color-negative)" stroke-width="3"/><text x="126" y="44" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)">HFrEF 진행</text><text x="242" y="44" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-negative)">12개월 11.6%</text><line x1="88" y1="61" x2="116" y2="61" style="stroke:var(--color-positive)" stroke-width="3"/><text x="126" y="65" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)">회복</text><text x="242" y="65" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-positive)">12개월 23.0%</text><line x1="88" y1="82" x2="116" y2="82" style="stroke:var(--color-text-1)" stroke-width="3"/><text x="126" y="86" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)">사망</text><text x="242" y="86" font-family="IBM Plex Mono, monospace" font-size="12" style="fill:var(--color-text-1)">12개월 22.2%</text><text x="70" y="326" font-size="11" style="fill:var(--color-text-3)">가로: 개월 · 세로: 누적발생 · 12개월에 사망(22.2%)이 진행(11.6%)보다 많음</text></svg></div>
-  <figcaption><span class="fno">그림 4</span><b>12개월에 무엇이 얼마나 생기나</b><span class="cap">index 검사 후 시간에 따라 진행·회복·사망이 각각 얼마나 쌓였는지. 12개월 시점 진행 11.6%, 회복 23.0%, 사망 22.2%.</span></figcaption>
-</figure>
-<div class="box plain"><p><b>쉽게 말하면</b> — 1년 뒤 좋아질 사람(23%)이 나빠질 사람(12%)의 두 배인데, 그 사이 죽는 사람이 나빠지는 사람보다 많음. 그래서 ‘진행 위험’만 말하면 반쪽짜리 설명이 됨.</p></div>
-
-  <p class="note">12개월에 사망 22.2%가 진행 11.6%보다 크다. “1년 진행 위험”만 말하면
-  그 환자가 죽을 확률을 숨기게 된다. 그래서 출력은 항상 세 개를 함께 낸다.</p>
-
-  <h3>2층 — 연속시간 은닉 마르코프 모형 (측정오차 보정)</h3>
-  <p>관측된 EF는 잡음 섞인 대리지표다. 상태는 은닉으로 두고, 관측은 <b>격자에 반올림된 값</b>으로 모형화한다.</p>
-  <pre class="formula">S(t) ∈ &#123;HFmrEF, HFrEF, 정상, 사망&#125;      P(S(t)=k | 이력) = Σ_s [exp(Qt)]_&#123;s,k&#125; · P(S(t0)=s | 이력)
-E_obs = round(E* + ε, 5),  ε ~ N(0, σ),  0~100 절단</pre>
-  <p>1층과 2층의 차이가 곧 논문의 방법론적 결과다.</p>
-  <pre class="formula">Δ = CIF_HMM(진행, 12개월) − CIF_관측라벨(진행, 12개월)</pre>
-  <p class="note">Δ가 크면 “지금까지 보고된 HFmrEF 진행률은 측정오차를 포함한 과대추정”,
-  작으면 “라벨이 견고했다”. 어느 쪽이 나와도 보고할 가치가 있다.</p>
-
-  <h3>3층 — 결정 규칙</h3>
-  <p>확률을 행동으로 바꾸는 단계. 다음 검사 시점은 <b>상태 불확실성이 가장 크게 줄어드는 시점</b>으로 정한다.</p>
-  <pre class="formula">t* = argmax_t  E[ H(S(t)) − H(S(t) | EF 관측) ]</pre>
-  <p class="note">상태가 확실한 환자(P(HFrEF)=0.9)는 검사해도 정보 이득이 작아 간격을 늘리고,
-  경계에 걸친 환자(EF 44, P=0.4)는 이득이 커서 간격을 줄인다.</p>
-</section>
-
-<section id="examples">
-  <h2><span class="n">05</span>모델이 내놓는 것은 — 3·6·9·12개월 확률표</h2>
-  <p class="lead">입력은 색인 심초음파 한 장과 그 환자의 기본 정보. 출력은 <b>네 상태의 확률을 네 시점에 찍은 표</b>임.
-  위험점수 하나가 아니라 표를 내야 처방이 바뀐다.</p>
-
-  <table>
-    <thead><tr><th>입력 (index 시점, 1회)</th><th>출력 (환자 1명당)</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>EF 40–49 · LVEDD · 벽두께 · LA volume · E/e′ · TAPSE · TR Vmax<br>
-            NT-proBNP · eGFR · K · Hb · INR<br>
-            나이 · 동반질환(당뇨·AF·CKD) · 현재 GDMT 4계열</td>
-        <td>3·6·9·12개월 × 4상태 확률표<br>
-            12개월 내 <b>처음</b> HFrEF 도달 확률 · <b>처음</b> 회복 도달 확률<br>
-            → 다음 심초음파 시점 · 증량 단계 · ICD 평가 시기</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="case">
-    <div class="case-h"><span class="tag neg">사례 A</span><h3>62세 남 · EF 44% · 푸로세미드만 복용</h3></div>
-    <p><b>입력</b> — LVEDD 6.1 cm, LA volume index 46 mL/m², E/e′ 16, TR Vmax 3.1 m/s, TAPSE 15 mm,
-    NT-proBNP 2,800 pg/mL, eGFR 48, K 4.6, Hb 11.8. 당뇨·심방세동 있음. GDMT는 푸로세미드 40 mg 하나뿐.</p>
-    <p class="note">구조 지표가 먼저 나빠진 전형적 모양 — EF는 44로 아직 범위 안인데 좌심실은 확장되고
-    폐동맥압은 올라가 있다. EF만 보는 규칙은 이 사람을 “안정”으로 분류한다.</p>
-
-    <figure class="fig">
-  <div class="chart chart-wide"><svg viewBox="0 0 900 264" role="img" aria-label="시점별 상태 확률"><text x="84" y="48.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">3개월</text><rect x="96.0" y="28" width="14.0" height="30" style="fill:var(--color-positive)"/><rect x="110.0" y="28" width="532.0" height="30" style="fill:var(--color-accent)"/><text x="376.0" y="48.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">76%</text><rect x="642.0" y="28" width="84.0" height="30" style="fill:var(--color-negative)"/><text x="684.0" y="48.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">12%</text><rect x="726.0" y="28" width="70.0" height="30" style="fill:var(--color-text-1)"/><text x="761.0" y="48.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">10%</text><rect x="96" y="28" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="84" y="94.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">6개월</text><rect x="96.0" y="74" width="42.0" height="30" style="fill:var(--color-positive)"/><text x="117.0" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">6%</text><rect x="138.0" y="74" width="441.0" height="30" style="fill:var(--color-accent)"/><text x="358.5" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">63%</text><rect x="579.0" y="74" width="126.0" height="30" style="fill:var(--color-negative)"/><text x="642.0" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">18%</text><rect x="705.0" y="74" width="91.0" height="30" style="fill:var(--color-text-1)"/><text x="750.5" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">13%</text><rect x="96" y="74" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="84" y="140.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">9개월</text><rect x="96.0" y="120" width="70.0" height="30" style="fill:var(--color-positive)"/><text x="131.0" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">10%</text><rect x="166.0" y="120" width="364.0" height="30" style="fill:var(--color-accent)"/><text x="348.0" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">52%</text><rect x="530.0" y="120" width="161.0" height="30" style="fill:var(--color-negative)"/><text x="610.5" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">23%</text><rect x="691.0" y="120" width="105.0" height="30" style="fill:var(--color-text-1)"/><text x="743.5" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">15%</text><rect x="96" y="120" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="84" y="186.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">12개월</text><rect x="96.0" y="166" width="98.0" height="30" style="fill:var(--color-positive)"/><text x="145.0" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">14%</text><rect x="194.0" y="166" width="294.0" height="30" style="fill:var(--color-accent)"/><text x="341.0" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">42%</text><rect x="488.0" y="166" width="182.0" height="30" style="fill:var(--color-negative)"/><text x="579.0" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">26%</text><rect x="670.0" y="166" width="126.0" height="30" style="fill:var(--color-text-1)"/><text x="733.0" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">18%</text><rect x="96" y="166" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><rect x="96" y="217" width="14" height="12" style="fill:var(--color-positive)"/><text x="116" y="228" font-size="12" style="fill:var(--color-text-1)">정상</text><rect x="246" y="217" width="14" height="12" style="fill:var(--color-accent)"/><text x="266" y="228" font-size="12" style="fill:var(--color-text-1)">HFmrEF</text><rect x="396" y="217" width="14" height="12" style="fill:var(--color-negative)"/><text x="416" y="228" font-size="12" style="fill:var(--color-text-1)">HFrEF</text><rect x="546" y="217" width="14" height="12" style="fill:var(--color-text-1)"/><text x="566" y="228" font-size="12" style="fill:var(--color-text-1)">사망</text><text x="96" y="252" font-size="11" style="fill:var(--color-text-3)">12개월 내 처음 HFrEF 도달 33% · 처음 회복 도달 15% (점유확률과 다름)</text></svg></div>
-  <figcaption><span class="fno">그림 5</span><b>사례 A의 상태 확률 궤적 (가상 출력)</b><span class="cap">각 막대는 그 시점에 어느 상태에 있을 확률. 100%를 네 칸으로 나눈 것.</span></figcaption>
-</figure>
-<div class="box plain"><p><b>쉽게 말하면</b> — 3개월까지는 거의 안 움직임(유지 76%). 이 시점 검사는 상태 확인이 아니라 약 반응 확인용임. 9개월을 넘기면 진행이 눈에 띄게 가속함.</p></div>
-
-    <table class="ptab">
-      <thead><tr><th>시점</th><th class="num">정상 ≥50</th><th class="num">HFmrEF 40–49</th>
-        <th class="num">HFrEF &lt;40</th><th class="num">사망</th></tr></thead>
+  <h2><span class="num">03</span>모형은 직전 검사만 본다</h2>
+  <p>종점은 “다음 검사에서 EF 40 또는 50 문턱을 넘는가”다. 이때 <b>현재 검사의 값은 절대 입력에 넣지 않는다</b> —
+  같은 시점에 측정된 LVEDD·심박수를 넣으면 종점 EF와 동시 측정이라 성능이 부풀려진다(누수).</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>모형</th><th class="n">30일 AUC</th><th class="n">180일 AUC</th><th class="n">Brier</th></tr></thead>
       <tbody>
-        <tr><td>3개월</td><td class="num" data-label="정상 ≥50">2%</td><td class="num" data-label="HFmrEF">76%</td><td class="num" data-label="HFrEF &lt;40">12%</td><td class="num" data-label="사망">10%</td></tr>
-        <tr><td>6개월</td><td class="num" data-label="정상 ≥50">6%</td><td class="num" data-label="HFmrEF">63%</td><td class="num" data-label="HFrEF &lt;40">18%</td><td class="num" data-label="사망">13%</td></tr>
-        <tr><td>9개월</td><td class="num" data-label="정상 ≥50">10%</td><td class="num" data-label="HFmrEF">52%</td><td class="num" data-label="HFrEF &lt;40">23%</td><td class="num" data-label="사망">15%</td></tr>
-        <tr><td>12개월</td><td class="num" data-label="정상 ≥50">14%</td><td class="num" data-label="HFmrEF">42%</td><td class="num" data-label="HFrEF &lt;40">26%</td><td class="num" data-label="사망">18%</td></tr>
+        <tr><td>문턱까지 거리 규칙</td><td class="n">0.703</td><td class="n">0.703</td><td class="n">—</td></tr>
+        <tr><td>로지스틱 회귀</td><td class="n">0.791</td><td class="n">0.795</td><td class="n">0.119</td></tr>
+        <tr><td><b>랜덤포레스트</b></td><td class="n"><b>0.824</b></td><td class="n"><b>0.825</b></td><td class="n"><b>0.109</b></td></tr>
+        <tr><td>XGBoost</td><td class="n">0.824</td><td class="n">0.828</td><td class="n">0.110</td></tr>
       </tbody>
     </table>
+  </div>
+  <p class="note">환자 단위 5-fold 교차, out-of-fold 예측. 랜덤포레스트와 부스팅 차이는 fold 표준편차(0.011) 안이라
+  알고리즘 선택이 결론을 바꾸지 않는다.</p>
+</section>
 
-    <p><b>읽는 법</b> — 12개월에 “HFrEF 26%”는 <b>“지금 세게 갈 근거가 4분의 1 있다”</b>는 뜻이고,
-    “사망 18%”는 <b>“기다리는 것도 공짜가 아니다”</b>는 뜻이다. 두 숫자가 같이 올라가므로 진행만 보고 결정하면 안 된다.</p>
-
-    <div class="box plain">
-      <p><b>이 표가 만드는 행동 (출력 3줄)</b><br>
-      ① 다음 심초음파 <b>3개월 뒤</b> — 12개월 진행 26%가 기준(25%)을 넘음<br>
-      ② ARNI → 베타차단제 → MRA 순으로 2–4주 간격 증량, SGLT2i는 즉시 추가(eGFR 48 허용)<br>
-      ③ ICD는 아직 아님 — EF&lt;40이 40일 이상 지속될 때 재평가. 지금 26%는 그 문턱의 대기 명단</p>
-    </div>
-
-    <p><b>3개월 뒤 갱신</b> — EF 38이 나오고 NT-proBNP가 1,900으로 떨어졌다면 표가 바뀐다.</p>
-    <table class="ptab">
-      <thead><tr><th>3개월 시점 관측</th><th class="num">P(HFrEF, 12개월)</th><th class="num">P(회복, 12개월)</th><th>다음 행동</th></tr></thead>
+<section id="pathway">
+  <h2><span class="num">04</span>결정은 세 갈래로 바뀐다</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>예측 재분류 확률</th><th>지금 할 일</th><th>근거</th></tr></thead>
       <tbody>
-        <tr><td>EF 38 (하락)</td><td class="num" data-label="P(HFrEF, 12개월)">26% → 58%</td>
-            <td class="num" data-label="P(회복, 12개월)">14% → 6%</td>
-            <td data-label="다음 행동">MRA 즉시, 재검 4주로 단축, ICD 상담 예약(40일 카운트 시작)</td></tr>
-        <tr><td>EF 47 (유지·호전)</td><td class="num" data-label="P(HFrEF, 12개월)">26% → 11%</td>
-            <td class="num" data-label="P(회복, 12개월)">14% → 24%</td>
-            <td data-label="다음 행동">재검 12개월로 연장, 증량은 내약성대로</td></tr>
+        <tr><td class="n">≥ 30%</td><td>치료 변경 보류 · 재측정 또는 정량(biplane/3D) 재검토</td><td>판정 3건 중 1건이 뒤집힘</td></tr>
+        <tr><td class="n">15–30%</td><td>문턱과의 거리 확인 후 진행, 애매하면 4–8주 뒤 재검</td><td>문턱 0–2%p 구간 재현율 62.6%</td></tr>
+        <tr><td class="n">&lt; 15%</td><td>그 EF로 진행 (약 시작·증량)</td><td>문턱 10%p 이상 떨어지면 재현율 91%</td></tr>
       </tbody>
     </table>
-    <p class="note">모델의 값은 검사 전 예측이 아니라 <b>검사 결과를 반영해 매번 다시 계산되는 상태</b>다.
-    그래서 “한 번 예측하고 끝”이 아니라 외래마다 갱신되는 도구가 된다.</p>
   </div>
-
-  <div class="case">
-    <div class="case-h"><span class="tag pos">사례 B</span><h3>58세 여 · EF 47% · ARNI+베타차단제 복용 중</h3></div>
-    <p><b>입력</b> — LVEDD 5.1 cm, E/e′ 9, TR Vmax 2.2 m/s, TAPSE 21 mm, NT-proBNP 380 pg/mL,
-    eGFR 82, K 4.4, Hb 13.2. 고혈압 외 동반질환 없음.</p>
-
-    <figure class="fig">
-  <div class="chart chart-wide"><svg viewBox="0 0 900 264" role="img" aria-label="시점별 상태 확률"><text x="84" y="48.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">3개월</text><rect x="96.0" y="28" width="56.0" height="30" style="fill:var(--color-positive)"/><text x="124.0" y="48.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">8%</text><rect x="152.0" y="28" width="574.0" height="30" style="fill:var(--color-accent)"/><text x="439.0" y="48.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">82%</text><rect x="726.0" y="28" width="42.0" height="30" style="fill:var(--color-negative)"/><text x="747.0" y="48.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">6%</text><rect x="768.0" y="28" width="28.0" height="30" style="fill:var(--color-text-1)"/><rect x="96" y="28" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="84" y="94.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">6개월</text><rect x="96.0" y="74" width="112.0" height="30" style="fill:var(--color-positive)"/><text x="152.0" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">16%</text><rect x="208.0" y="74" width="497.0" height="30" style="fill:var(--color-accent)"/><text x="456.5" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">71%</text><rect x="705.0" y="74" width="56.0" height="30" style="fill:var(--color-negative)"/><text x="733.0" y="94.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">8%</text><rect x="761.0" y="74" width="35.0" height="30" style="fill:var(--color-text-1)"/><rect x="96" y="74" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="84" y="140.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">9개월</text><rect x="96.0" y="120" width="161.0" height="30" style="fill:var(--color-positive)"/><text x="176.5" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">23%</text><rect x="257.0" y="120" width="420.0" height="30" style="fill:var(--color-accent)"/><text x="467.0" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">60%</text><rect x="677.0" y="120" width="70.0" height="30" style="fill:var(--color-negative)"/><text x="712.0" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">10%</text><rect x="747.0" y="120" width="49.0" height="30" style="fill:var(--color-text-1)"/><text x="771.5" y="140.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">7%</text><rect x="96" y="120" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><text x="84" y="186.0" font-size="12.5" style="fill:var(--color-text-1)" text-anchor="end">12개월</text><rect x="96.0" y="166" width="203.0" height="30" style="fill:var(--color-positive)"/><text x="197.5" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">29%</text><rect x="299.0" y="166" width="350.0" height="30" style="fill:var(--color-accent)"/><text x="474.0" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">50%</text><rect x="649.0" y="166" width="84.0" height="30" style="fill:var(--color-negative)"/><text x="691.0" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">12%</text><rect x="733.0" y="166" width="63.0" height="30" style="fill:var(--color-text-1)"/><text x="764.5" y="186.0" font-family="IBM Plex Mono, monospace" font-size="12" fill="#fff" text-anchor="middle">9%</text><rect x="96" y="166" width="700" height="30" fill="none" style="stroke:var(--color-text-1)" stroke-width="1"/><rect x="96" y="217" width="14" height="12" style="fill:var(--color-positive)"/><text x="116" y="228" font-size="12" style="fill:var(--color-text-1)">정상</text><rect x="246" y="217" width="14" height="12" style="fill:var(--color-accent)"/><text x="266" y="228" font-size="12" style="fill:var(--color-text-1)">HFmrEF</text><rect x="396" y="217" width="14" height="12" style="fill:var(--color-negative)"/><text x="416" y="228" font-size="12" style="fill:var(--color-text-1)">HFrEF</text><rect x="546" y="217" width="14" height="12" style="fill:var(--color-text-1)"/><text x="566" y="228" font-size="12" style="fill:var(--color-text-1)">사망</text><text x="96" y="252" font-size="11" style="fill:var(--color-text-3)">12개월 내 처음 회복 도달 34% · 처음 HFrEF 도달 15%</text></svg></div>
-  <figcaption><span class="fno">그림 6</span><b>사례 B의 상태 확률 궤적 (가상 출력)</b><span class="cap">같은 모형, 다른 입력. 회복 쪽으로 무게가 실려 있다.</span></figcaption>
-</figure>
-<div class="box plain"><p><b>쉽게 말하면</b> — A와 같은 병명, 같은 EF 범위인데 표가 정반대임. 이 사람에게 3개월 재검은 얻는 정보보다 비용이 큼 — 확인할 것이 별로 없기 때문임.</p></div>
-
-    <div class="box plain">
-      <p><b>이 표가 만드는 행동</b><br>
-      ① 다음 심초음파 <b>12개월 뒤</b> — 진행 12%로 기준(15%) 아래<br>
-      ② 증량은 내약성대로, 4계열 유지가 우선. 새 약 추가 근거 없음<br>
-      ③ 대신 <b>증상·체중·NT-proBNP</b>로 3개월마다 전화/외래 추적 — 영상 없이 감시</p>
-    </div>
-  </div>
-
-  <div class="box warn">
-    <p><b>두 종류의 확률을 구분해야 한다</b> — ①<b>점유확률</b>: 그 시점에 그 상태에 있을 확률(위 막대).
-    ②<b>누적도달확률</b>: 한 번이라도 그 상태에 닿을 확률. 상태가 되돌아오므로 둘은 다르고,
-    ICD·이식 평가처럼 “닿은 적이 있는가”가 기준인 결정에는 ②를 써야 한다.</p>
-    <p><b>숫자의 성격</b> — 위 수치는 아직 모형 적합 전 출력 형식 예시다. 방향과 크기는 이 코호트의
-    누적발생(12개월 진행 11.6% · 회복 23.0% · 사망 22.2%)에서 가져왔고, 사례 A·B는 그 위에
-    구조 지표와 GDMT를 얹었을 때의 예상 이동폭을 보여준다.</p>
-  </div>
-</section>
-
-<section id="flow">
-  <h2><span class="n">06</span>코호트</h2>
-  <div class="cards">
-    <div><div class="tag">step 1</div><h3>70,429</h3><p>TTE EF 유효값 보유</p></div>
-    <div><div class="tag">step 2</div><h3>8,218</h3><p>첫 TTE EF 40–49 (HFmrEF index)</p></div>
-    <div><div class="tag">step 3</div><h3>5,315</h3><p>관찰 기간 &gt; 0 (후속 EF 또는 사망)</p></div>
-  </div>
-  <p class="note">제외 2,903명은 EF를 한 번만 찍고 사망 기록도 없어 추적이 성립하지 않는다.
-  3층 모형에서는 이들도 “관측 1회” 정보로 기여시킬 수 있다(2층의 이점).</p>
-</section>
-
-<section id="data">
-  <h2><span class="n">07</span>데이터 — 세 층</h2>
-  <table>
-    <thead><tr><th>층</th><th>출처</th><th>쓰는 것</th></tr></thead>
-    <tbody>
-      <tr><td>① 상태 정의</td><td>MIMIC-IV-ECHO v1.0.1</td><td>TTE EF 시계열 전체(반복 관측 = 은닉상태 추정 근거), index 검사 구조화 측정치</td></tr>
-      <tr><td>② 공변량</td><td>MIMIC-IV hosp</td><td>랩(index 전 90일)·동반질환·입원 맥락·사망일</td></tr>
-      <tr><td>③ 치료</td><td>MIMIC-IV prescriptions</td><td>index 전 365일 GDMT 계열 복용 (전이강도에 영향)</td></tr>
-    </tbody>
-  </table>
-  <p class="note">영상은 쓰지 않는다. A4C 라벨 세트는 1,064클립/809명으로 코호트를 덮지 못해 tabular 설계로 확정.</p>
-</section>
-
-<section id="novelty">
-  <h2><span class="n">08</span>노벨티 — 무엇이 남아 있나</h2>
-  <table>
-    <thead><tr><th>선행 영역</th><th>대표</th><th>편수</th><th>우리와의 차이</th></tr></thead>
-    <tbody>
-      <tr><td>AI-ECG로 HFmrEF 진행 예측</td><td>Kim DY 2025, Front Cardiovasc Med (PMID 39995968)</td><td class="num">—</td>
-        <td>심전도 + 클러스터, 결과는 추적 EF 변화. 우리는 <b>에코 tabular + 다중상태</b></td></tr>
-      <tr><td>ML 사망·재입원 예측</td><td>Zhao 2022, Tian 2023</td><td class="num">31</td><td>결과가 사망·입원, 상태 전이 아님</td></tr>
-      <tr><td>범주 전이 기술</td><td>Gu 2020, ESC Heart Fail</td><td class="num">84</td><td>1년 시점 3군 재분류, 시간·되돌아감 미반영</td></tr>
-      <tr><td>HFmrEF + competing risk</td><td>—</td><td class="num">13</td><td>회복을 경쟁사건으로 둔 예측모형 없음</td></tr>
-      <tr class="hl"><td>HFmrEF + 은닉상태·측정오차</td><td>—</td><td class="num">0</td><td><b>우리 칸</b> — EF 격자·오분류를 명시적으로 모형화</td></tr>
-    </tbody>
-  </table>
-  <div class="box warn">
-    <p><b>정직한 점수</b> — “HFmrEF 진행 예측”만 쓰면 2/10(2025년 점유). “에코로 진행 예측”은 3/10(모달리티 교체).
-    <b>“4상태 되돌아감 + EF 측정오차를 모형화하고 재검 시점까지”가 7/10</b>이다.</p>
-  </div>
+  <p>이 표의 목적은 모델이 적응증을 정하는 게 아니라, <b>“지금 결정해도 되는가”만 판단</b>하는 것이다.
+  ICD·약물 적응은 그대로 가이드라인이 정한다.</p>
 </section>
 
 <section id="limits">
-  <h2><span class="n">09</span>한계</h2>
-  <ol class="steps">
-    <li><b>식별성</b><span>측정오차 σ를 키우면 전이율을 낮춰도 likelihood가 비슷해진다.
-      같은 날 중복 측정이나 외부 반복측정 연구로 σ를 고정해야 한다.</span></li>
-    <li><b>검사가 informative</b><span>MIMIC의 심초음파는 증상 기반이라 관찰 시점이 상태에 의존한다.
-      외생으로 두면 전이율이 편향되므로 민감도 분석이 필수다.</span></li>
-    <li><b>상태 정의가 EF 경계</b><span>40/50 컷은 가이드라인 관행이지 생물학이 아니다. ±3%p 민감도 분석이 필요하다.</span></li>
-    <li><b>사망 원인 미구분</b><span>심혈관·비심혈관을 나누면 다시 경쟁위험이 필요해진다.</span></li>
-    <li><b>재검 시점 정책은 검증 불가</b><span>관찰된 간격이 무작위가 아니라, 정책 효과는 시뮬레이션으로만 추정된다.</span></li>
-  </ol>
+  <h2><span class="num">05</span>한계 — 먼저 읽어야 하는 부분</h2>
+  <ul>
+    <li><b>예후 모델이 아니다.</b> 재분류는 대부분 측정 잡음이고, 이 모델은 “판정이 흔들릴 것”을 맞힌다.
+    “환자가 나빠질 것”을 맞히는 모델이 아니다.</li>
+    <li><b>선택편향.</b> 학습 대상은 30일 안에 재검을 받은 사람이다(입원·증상자 편중). 일반 외래에서는 재현율이 다를 수 있다.</li>
+    <li><b>단일기관·ICU 편중.</b> MIMIC-IV는 미국 단일 의료기관이다. 외부 검증이 없다.</li>
+    <li><b>리듬·진단코드·검사실 시계열이 없다.</b> 심방세동 여부, HF 진단 코드, 연속 lab이 없어 그 축은 다루지 못한다.</li>
+  </ul>
 </section>
 
 <section id="next">
-  <h2><span class="n">10</span>다음 단계</h2>
-  <ol class="steps">
-    <li><b>1층 적합</b><span>4상태 다중상태 모형(msm) → CIF·전이강도·공변량 효과. 여기서 심사 방어.</span></li>
-    <li><b>2층 적합</b><span>CT-HMM(격자 방출) → ΔCIF 정량화. σ 식별 전략 확정.</span></li>
-    <li><b>3층 정책</b><span>정보 이득 기반 재검 간격을 코호트 시뮬레이션으로 비교(3·6·12개월 고정 vs 모델).</span></li>
-    <li><b>검증</b><span>시간의존 AUC·Brier·보정, 그리고 외부 코호트 필요성 명시.</span></li>
+  <h2><span class="num">06</span>다음 단계</h2>
+  <ol>
+    <li>연도 기준 temporal split 검증 (외부검증 대체)</li>
+    <li>conformal 예측구간 — 환자별 확률의 보장된 범위</li>
+    <li>결정곡선(DCA) — 재측정 100건당 막은 오분류 건수</li>
+    <li>HFimpEF 판정의 확신도 접목 (ΔEF 10%p는 잡음보다 작다)</li>
   </ol>
+  <p>방법의 세부는 <a href="methods/">방법론 리포트</a>, 데이터의 실제 모양은
+  <a href="review/">데이터 리뷰</a>에 있다.</p>
 </section>
-
 <footer>
-  <p>데이터: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).<br>
+  <p>데이터: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
   환자 단위 데이터는 공개하지 않는다 — 이 페이지에는 집계 통계만 있다.</p>
-  <p>27paper-echo · 2026-11-01</p>
+  <p>생성: <code>src/make_site_reclass.py</code> · 수치: <code>results/pilot_reclass.json</code></p>
+  <p>27paper-echo · 2026-11-04</p>
 </footer>
-
 </main>
 </body>
 </html>

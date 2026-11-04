@@ -3,7 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HFmrEF 환자 한 명의 12개월 확률표 — 방법론 노트</title>
+<title>방법론 리포트 — 측정오차 추정과 재분류 예측</title>
+<meta name="description" content="짧은 간격 재측정으로 측정 잡음을 추정하고, 판정 재현율을 정의하고, 누수 없이 재분류를 예측하는 절차.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="방법론 리포트 — 측정오차 추정과 재분류 예측">
+<meta property="og:description" content="짧은 간격 재측정으로 측정 잡음을 추정하고, 판정 재현율을 정의하고, 누수 없이 재분류를 예측하는 절차.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/methods/">
+<meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta name="theme-color" content="#1B1113">
+<link rel="canonical" href="https://kimhs950627.github.io/27paper-echo-hfmref/methods/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B1113'/%3E%3Cpath d='M6 16 H13 M13 16 L22 8 M13 16 H22 M13 16 L22 24' stroke='%23F6F2EF' stroke-width='2.2' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,424 +25,153 @@
 <link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
-<div class="wrap">
+<nav class="pagetabs" aria-label="페이지 전환">
+  <div class="wrap">
+    <a class="pt" href=".././">연구 계획</a>
+    <a class="pt" href="../review/">데이터 리뷰</a>
+    <a class="pt active" href="../methods/" aria-current="page">방법론 리포트</a>
+  </div>
+</nav>
 
+<div class="wrap">
 <header class="masthead">
-  <p class="kicker">27paper-echo · 방법론 노트 · 2026-11-04</p>
-  <h1>HFmrEF 환자 한 명의<br>12개월 확률표</h1>
-  <p class="sub">외래에서 lab·심초음파 6개만 넣으면 3·6·9·12개월에 HFrEF / HFmrEF / 정상 / 사망에
-  있을 확률이 나온다. 이 문서는 <b>그 표를 만든 과정까지만</b> 다룬다.</p>
-  <p class="meta">코호트 5,315명 · landmark 4,554명 · 모형 적합 1,377명 · 관측구간 3,358건</p>
+  <div class="wrap">
+    <p class="kicker">27paper-echo · 방법론 리포트 · 2026-11-04</p>
+    <h1>측정오차를 어떻게<br>숫자로 만드는가</h1>
+    <p class="sub">“EF는 흔들린다”는 말은 논문이 아니다. <b>얼마나</b> 흔들리는지, <b>어떤 판정이</b> 흔들리는지,
+    그리고 <b>다시 재면</b> 얼마나 달라지는지를 추정하는 순서를 적는다.</p>
+    <p class="meta">TTE 179,928검사 · LVEF 133,841 · 재측정 쌍 12,522(30일) / 27,576(180일)</p>
+  </div>
 </header>
 
 <div class="lede">
-  <p class="lede-title">네 줄 요약</p>
+  <p class="lede-title">순서</p>
   <ol>
-    <li><strong>확률표는 나온다.</strong> 환자 6개 값(EF·LVEDD·나이·eGFR·Hb·Na)을 넣으면
-    3·6·9·12개월 네 상태의 확률이 계산된다. <a href="#demo">§08에서 직접 넣어볼 수 있다</a>.</li>
-    <li><strong>계산 원리는 행렬 곱이다.</strong> 상태 4개 → 4×4 표(전이행렬) 하나, 12개월 확률은
-    그 표를 <b>12번 곱한</b> 것. 고3 수학(행렬의 곱)으로 끝난다.</li>
-    <li><strong>BNP·E/e′·TAPSE는 뺐다.</strong> 결측이 69~92%라 외래에서 못 쓴다. 6개만 넣어도
-    14개를 넣은 모형과 답이 같다(사망 HR 1.92 vs 1.91).</li>
-    <li><strong>이 표는 인과가 아니다.</strong> "약을 주면 어떻게 되나"와 "이득이 얼마인가"는
-    아직 답이 아니다. 다음 3단계 계획을 §07에 적었다.</li>
+    <li><b>잡음 크기</b>를 짧은 간격 재측정으로 분리한다 (진짜 변화 ≈ 0 가정이 성립하는 구간).</li>
+    <li><b>재현율</b>을 정의한다 — 같은 판정이 다시 나올 경험적 확률. 가정이 없다.</li>
+    <li><b>종점</b>을 치료 문턱 교차로 정의한다.</li>
+    <li><b>모형</b>은 직전 검사만 입력해 누수를 막고, 환자 단위로 검증한다.</li>
   </ol>
 </div>
 
-<h2><span class="num">00</span>이 문서의 범위</h2>
-
-<p class="lead">답한 것: <b>"이 환자가 12개월 뒤 어디에 있을지"</b>. 답하지 않은 것: <b>"약을 주면 그게 나아지는지"</b>.</p>
-
-<p>이 구분이 이 문서의 전부다. 1번은 관측자료로 계산할 수 있고, 2번은 <b>인과</b>라서 별도 설계가 필요하다.
-1번을 확실히 해두지 않으면 2번은 검증할 수 없다. 그래서 이 문서는 1번에서 멈춘다.</p>
-
-<table>
-<thead><tr><th>질문</th><th>상태</th><th>어디에</th></tr></thead>
-<tbody>
-<tr><td><b>a.</b> 이 환자가 3·6·9·12개월에 HFrEF / HFmrEF / 정상 / 사망에 있을 확률</td>
-<td class="neg"><b>완료</b></td><td>§01–§06, <a href="#demo">§08 데모</a></td></tr>
-<tr><td><b>b.</b> 지금 약을 안 먹는 환자에게 약을 주면 그 표가 어떻게 바뀌나</td>
-<td class="n">관측 연관까지만</td><td>§07 계획 2단계</td></tr>
-<tr><td><b>c.</b> 그래서 약을 주는 것이 이득인가, 얼마나인가</td>
-<td class="pos">미해결</td><td>§07 계획 3단계 (최종 목표)</td></tr>
-</tbody>
-</table>
-
-<h2><span class="num">01</span>데이터 — 무엇으로 만들었나</h2>
-
-<p>MIMIC-IV의 심초음파 판독값과 처방·검사 기록을 붙여 만든 코호트다. 시간 0은 <b>EF 40–49가 처음
-확인된 심초음파 날짜</b>이고, 그로부터 90일을 landmark로 둔다(90일 안에 죽은 사람은 제외 — 이걸 빼지
-않으면 "약을 시작할 수 있었던 사람"만 남는 편향이 생긴다).</p>
-
-<table>
-<thead><tr><th>항목</th><th class="n">값</th><th>설명</th></tr></thead>
-<tbody>
-<tr><td>HFmrEF 첫 확인</td><td class="n">5,315명</td><td>EF 40–49, 성인</td></tr>
-<tr><td>landmark 90일 생존</td><td class="n">4,554명</td><td>모형의 모집단</td></tr>
-<tr><td>초음파 2회 이상 (궤적 관측)</td><td class="n">1,377명</td><td>전이를 실제로 볼 수 있는 사람</td></tr>
-<tr><td>관측 구간</td><td class="n">3,358건</td><td>"이 상태로 이만큼 있었다"는 기록</td></tr>
-<tr><td>관측된 사건</td><td class="n">회복 1,988 · HFrEF 진행 1,139<br>사망 1,642 · 중도절단 546</td><td>경쟁사건 4종</td></tr>
-<tr><td>12개월 관측 점유</td><td class="n">정상 22.2 · HFmrEF 45.3<br>HFrEF 11.0 · 사망 21.6%</td><td>모형의 비교 기준</td></tr>
-<tr><td>추적 중앙값</td><td class="n">203일</td><td>12개월은 절반이 외삽</td></tr>
-</tbody>
-</table>
-
-<h3>변수는 6개만 쓴다</h3>
-<p>처음에는 14개(BNP·재원일수·E/e′·TAPSE·동반질환 등)를 넣었다. 그런데 <b>결측률</b>이 문제였다.</p>
-
-<table>
-<thead><tr><th>변수</th><th class="n">결측률</th><th>판정</th></tr></thead>
-<tbody>
-<tr><td>EF</td><td class="n">0%</td><td class="neg">사용</td></tr>
-<tr><td>LVEDD</td><td class="n">6.3%</td><td class="neg">사용</td></tr>
-<tr><td>나이</td><td class="n">0%</td><td class="neg">사용</td></tr>
-<tr><td>크레아티닌 → eGFR</td><td class="n">14.9%</td><td class="neg">사용</td></tr>
-<tr><td>나트륨</td><td class="n">16.0%</td><td class="neg">사용</td></tr>
-<tr><td>혈색소</td><td class="n">16.3%</td><td class="neg">사용</td></tr>
-<tr><td>TR Vmax</td><td class="n">25.7%</td><td>제외 (넣어도 결론 동일)</td></tr>
-<tr><td>NT-proBNP</td><td class="n">68.6%</td><td class="pos">제외</td></tr>
-<tr><td>LA volume</td><td class="n">75.8%</td><td class="pos">제외</td></tr>
-<tr><td>E/e′</td><td class="n">89.2%</td><td class="pos">제외</td></tr>
-<tr><td>TAPSE</td><td class="n">91.8%</td><td class="pos">제외</td></tr>
-</tbody>
-</table>
-
-<p>6개를 모두 가진 환자는 <b>74.4%</b>다. 즉 외래에서 4명 중 3명은 바로 표를 만들 수 있다.
-BNP를 넣으면 이 비율이 3분의 1로 떨어진다 — <b>정밀도를 조금 얻고 사용 가능성을 크게 잃는</b> 교환이다.</p>
-
-<div class="plain"><span class="lbl">빼도 되는 이유를 확인했음</span>
-같은 모형을 14개·8개(TR 포함)·6개로 각각 적합해 비교했다. HFmrEF→사망 위험비는
-<b>1.91 / 1.86 / 1.92</b>, 12개월 사망차는 <b>+6.6 / +6.0 / +6.3%p</b>. 즉 변수를 줄여도 답이 움직이지 않는다.
-</div>
-
-<h2><span class="num">02</span>상태는 4개 — 그리고 EF 하나로는 부족하다</h2>
-
-<figure>
-<svg viewBox="0 0 860 260" role="img" aria-label="4상태 전이도"><rect x="62" y="46" width="156" height="48" fill="#F3F0E9" stroke="#B9B09B"/><text x="140" y="68" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">정상</text><text x="140" y="83" font-size="11" font-weight="400" fill="#5D5E63" text-anchor="middle">(EF ≥50)</text><rect x="352" y="16" width="156" height="48" fill="#F3F0E9" stroke="#B9B09B"/><text x="430" y="38" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">HFmrEF</text><text x="430" y="53" font-size="11" font-weight="400" fill="#5D5E63" text-anchor="middle">(EF 40–49)</text><rect x="642" y="46" width="156" height="48" fill="#F3F0E9" stroke="#B9B09B"/><text x="720" y="68" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">HFrEF</text><text x="720" y="83" font-size="11" font-weight="400" fill="#5D5E63" text-anchor="middle">(EF <40)</text><rect x="352" y="186" width="156" height="48" fill="#F3F0E9" stroke="#B9B09B"/><text x="430" y="208" font-size="13" font-weight="600" fill="#101828" text-anchor="middle">사망</text><line x1="140" y1="70" x2="430" y2="40" stroke="#D6CFBF" stroke-width="1.5"/><text x="285.0" y="45.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">악화</text><line x1="430" y1="40" x2="140" y2="70" stroke="#D6CFBF" stroke-width="1.5"/><text x="285.0" y="67.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">회복</text><line x1="430" y1="40" x2="720" y2="70" stroke="#D6CFBF" stroke-width="1.5"/><text x="575.0" y="45.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">악화</text><line x1="720" y1="70" x2="430" y2="40" stroke="#D6CFBF" stroke-width="1.5"/><text x="575.0" y="69.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">회복</text><line x1="140" y1="70" x2="720" y2="70" stroke="#D6CFBF" stroke-width="1.5"/><text x="430.0" y="44.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">직행</text><line x1="430" y1="40" x2="430" y2="210" stroke="#D6CFBF" stroke-width="1.5"/><text x="430.0" y="125.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">사망</text><line x1="140" y1="70" x2="430" y2="210" stroke="#D6CFBF" stroke-width="1.5"/><text x="285.0" y="140.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">사망</text><line x1="720" y1="70" x2="430" y2="210" stroke="#D6CFBF" stroke-width="1.5"/><text x="575.0" y="140.0" font-size="10.5" font-family="monospace" fill="#8A8F98" text-anchor="middle">사망</text></svg>
-<figcaption><b>그림 1.</b> 상태 4개. 사망은 흡수상태(되돌아오지 않음). 화살표 하나가 "전이"이고,
-그 화살표마다 <b>속도</b>가 따로 있다.</figcaption>
-</figure>
-
-<p>EF는 연속값이지만 상태는 4개로 끊었다. 이유는 임상 결정이 상태 단위로 이루어지기 때문이다
-(HFrEF면 약을 올리고, 정상이면 유지).</p>
-
-<div class="warnbox"><span class="lbl">EF를 그대로 믿으면 생기는 문제</span>
-이 코호트의 EF는 <b>93.9%가 5의 배수</b>로 기록되고, 같은 상태 안에서도 다음 검사와의 차이
-중앙값이 <b>5%p</b>다. 즉 EF 49 → 50은 상태 변화일 수도 있고 <b>판독 흔들림</b>일 수도 있다.
-그래서 "EF 49와 EF 50은 다르다"고 단정하지 않고, 경계 근처는 확률적으로 다룬다.
-</div>
-
-<h2><span class="num">03</span>확률표를 만드는 원리 — 행렬 곱 12번</h2>
-
-<p class="lead">상태가 4개면 "지금 어디에 있나"는 숫자 4개, "다음 달 어디로 가나"는 4×4 표 하나로 적을 수 있다.</p>
-
-<p>지금 상태를 확률로 적으면 이렇게 된다. HFmrEF 환자면 <b>(정상 0, HFmrEF 1, HFrEF 0, 사망 0)</b>.</p>
-
-<p style="font-family:var(--font-mono);font-size:14px;background:var(--surface-1);padding:14px 16px;margin:var(--s3) 0">
-[정상, HFmrEF, HFrEF, 사망] × P = [다음 달 확률 4개]
-</p>
-
-<p>여기서 P가 4×4 전이행렬이다. <b>P를 12번 곱하면</b> 12개월 뒤 확률이 나온다. 끝이다.
-이게 왜 맞는지는 msm 워크북에서 100명 예시로 손계산해 뒀다(§09 링크).</p>
-
-<div class="mathbox"><span class="lbl">한 줄 요약</span>
-<p style="font-family:var(--font-mono);font-size:15px;margin:6px 0">12개월 확률 = [0, 1, 0, 0] × P¹²</p>
-<span class="read">읽는 법 — P는 "한 달 동안의 이동표". 12번 곱하면 12개월치가 된다.
-상태가 4개뿐이라 <b>정확히</b> 계산되고, 시뮬레이션은 필요 없다.</span></div>
-
-<h3>P 안에는 "속도"가 들어 있다</h3>
-<p>실제로는 확률이 아니라 <b>속도(rate)</b>를 먼저 구한다. 이유는 검사 간격이 사람마다 달라서다 —
-어떤 사람은 2개월 만에, 어떤 사람은 9개월 만에 다음 초음파를 찍는다. 속도로 두면 간격이 달라도 같은 값이 나온다.</p>
-
-<p style="font-family:var(--font-mono);font-size:14px;background:var(--surface-1);padding:14px 16px;margin:var(--s3) 0">
-q(상태 i → j) = exp( b0 + b1·EF + b2·LVEDD + b3·나이 + b4·eGFR + b5·Hb + b6·Na + b7·약 )<br>
-P(한 달) = exp( Q × 30.44일 )      ← Q는 위 q를 4×4로 담은 것
-</p>
-
-<p><b>왜 exp인가</b> — 속도가 하루 q라면 30일 뒤 살아남을 확률은 (1−q)³⁰이고, 이건 e^(−30q)와 거의 같다.
-q가 작을 때 (1−q)ⁿ ≈ e^(−qn)이라는 고3 수학(자연상수 정의)이 그대로 쓰인다.</p>
-
-<p><b>계수 b는 무엇을 뜻하나</b> — b가 0.2면 그 변수가 1 표준편차 커질 때 그 전이의 속도가 e^0.2 ≈ 1.22배,
-즉 22% 빨라진다는 뜻이다. 이게 위험비(HR)이고, 표에서 자주 보는 숫자다.</p>
-
-<h2><span class="num">04</span>실제 수치 — 이 코호트에서 나온 계수</h2>
-
-<p>6개 변수 + 약 여부로 9개 전이를 각각 적합했다. 계수 일부만 옮기면 이렇다(표준화 단위, 1 SD당).</p>
-
-<table>
-<thead><tr><th>전이</th><th class="n">기준속도 b0</th><th class="n">EF</th><th class="n">LVEDD</th><th class="n">나이</th><th class="n">eGFR</th><th class="n">Hb</th><th class="n">Na</th><th class="n">약 시작</th></tr></thead>
-<tbody>
-<tr><td>HFmrEF → 사망</td><td class="n">-8.04</td><td class="n">+0.20</td><td class="n">-0.26</td><td class="n">+0.46</td><td class="n">-0.11</td><td class="n">-0.14</td><td class="n">+0.06</td><td class="n">+0.65</td></tr>
-<tr><td>HFmrEF → HFrEF</td><td class="n">-6.65</td><td class="n">+0.01</td><td class="n">+0.14</td><td class="n">+0.06</td><td class="n">+0.08</td><td class="n">-0.08</td><td class="n">-0.02</td><td class="n">+0.23</td></tr>
-<tr><td>HFmrEF → 정상</td><td class="n">-6.53</td><td class="n">+0.06</td><td class="n">-0.19</td><td class="n">-0.26</td><td class="n">+0.00</td><td class="n">-0.21</td><td class="n">+0.04</td><td class="n">+0.12</td></tr>
-</tbody>
-</table>
-
-<div class="plain"><span class="lbl">읽는 법 — 나이 한 줄만 보면</span>
-나이 계수가 사망 +0.46, 회복 −0.26이다. 나이가 1 SD(14.8세) 많으면 <b>사망 속도는 e^0.46 = 1.58배</b>,
-<b>회복 속도는 e^(−0.26) = 0.77배</b>. 그래서 나이 든 환자의 표는 사망 칸이 커지고 정상 칸이 작아진다.
-실제로 62세와 80세를 비교하면 12개월 사망이 <b>7.6% → 8.6%</b>, HFrEF가 <b>22.2% → 32.7%</b>로 벌어진다.
-</div>
-
-<div class="warnbox"><span class="lbl">약 계수 +0.65를 약의 해로움으로 읽으면 안 되는 이유</span>
-HFmrEF→사망 전이에서 약 시작 계수가 +0.65(HR e^0.65 ≈ 1.9)다. 이건 "약을 시작한 사람이 더 빨리 죽는다"가
-아니라 <b>"죽을 것 같은 사람이 약을 시작했다"</b>일 가능성이 크다. 실제로 이 코호트에서 약 시작군은
-EF 중앙값이 <b>41 vs 45</b>로 더 낮고, 재원일수가 <b>8일 vs 4일</b>로 두 배다. 즉 시작 시점에 이미 더 무거운 환자다.
-이 교란을 지우는 것이 §07의 과제다.
-</div>
-
-<h2><span class="num">05</span>예시 세 명 — 원본 데이터 계수로 계산한 표</h2>
-
-<p>같은 모형에 서로 다른 환자를 넣은 결과다. 모두 EF 40–49, 90일 생존, 초음파 2회 이상 조건을 만족한다.</p>
-
-<table>
-<thead><tr><th>환자</th><th class="n">시점</th><th class="n">정상</th><th class="n">HFmrEF</th><th class="n">HFrEF</th><th class="n">사망</th></tr></thead>
-<tbody>
-<tr><td rowspan="4"><b>A</b> · 62세 남<br>EF 45 · LVEDD 5.0<br>eGFR 85 · Hb 13.5 · Na 139</td><td class="n">3개월</td><td class="n">10.3%</td><td class="n">78.0%</td><td class="n">9.6%</td><td class="n">2.2%</td></tr>
-<tr><td class="n">6개월</td><td class="n">17.7%</td><td class="n">62.4%</td><td class="n">15.8%</td><td class="n">4.1%</td></tr>
-<tr><td class="n">9개월</td><td class="n">22.9%</td><td class="n">51.4%</td><td class="n">19.8%</td><td class="n">5.9%</td></tr>
-<tr><td class="n" style="font-weight:600">12개월</td><td class="n" style="font-weight:600">26.6%</td><td class="n" style="font-weight:600">43.5%</td><td class="n" style="font-weight:600">22.2%</td><td class="n" style="font-weight:600">7.6%</td></tr>
-<tr><td rowspan="2"><b>B</b> · 74세 남<br>EF 42 · LVEDD 5.6<br>eGFR 38 · Hb 10.8 · Na 134</td><td class="n">6개월</td><td class="n">14.2%</td><td class="n">61.4%</td><td class="n">19.5%</td><td class="n">5.0%</td></tr>
-<tr><td class="n" style="font-weight:600">12개월</td><td class="n" style="font-weight:600">21.3%</td><td class="n" style="font-weight:600">41.3%</td><td class="n" style="font-weight:600">28.4%</td><td class="n" style="font-weight:600">9.0%</td></tr>
-<tr><td rowspan="2"><b>C</b> · 80세 여<br>EF 40 · LVEDD 5.8<br>eGFR 45 · Hb 10.2 · Na 132</td><td class="n">6개월</td><td class="n">12.1%</td><td class="n">61.0%</td><td class="n">22.1%</td><td class="n">4.7%</td></tr>
-<tr><td class="n" style="font-weight:600">12개월</td><td class="n" style="font-weight:600">18.4%</td><td class="n" style="font-weight:600">40.3%</td><td class="n" style="font-weight:600">32.7%</td><td class="n" style="font-weight:600">8.6%</td></tr>
-</tbody>
-</table>
-
-<p>세 명 모두 <b>HFmrEF에 남을 확률이 가장 크지만, 시간이 갈수록 줄고 HFrEF와 정상이 함께 늘어난다</b>.
-이게 경쟁사건 구조다 — 좋아지는 길과 나빠지는 길이 동시에 열려 있다. C는 A보다 HFrEF 확률이
-<b>10.5%p 높고</b> 정상 확률이 <b>8.2%p 낮다</b>(나이·신기능·Hb·Na가 모두 나쁘기 때문).</p>
-
-<h2><span class="num">06</span>이 표가 맞는지 어떻게 확인하나</h2>
-
-<p class="lead">모형 없이 관측값만으로 생존곡선을 그려서 비교한다. 이게 기준선이고, 모형은 특별한 이유 없으면 여기 붙어야 한다.</p>
-
-<figure>
-<svg viewBox="0 0 860 400" role="img" aria-label="EF 상태별 crude 생존곡선"><line x1="64" y1="40.0" x2="784" y2="40.0" stroke="#E8E3D7"/><text x="54" y="44.0" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">100%</text><line x1="64" y1="82.9" x2="784" y2="82.9" stroke="#E8E3D7"/><text x="54" y="86.9" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">90%</text><line x1="64" y1="125.7" x2="784" y2="125.7" stroke="#E8E3D7"/><text x="54" y="129.7" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">80%</text><line x1="64" y1="168.6" x2="784" y2="168.6" stroke="#E8E3D7"/><text x="54" y="172.6" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">70%</text><line x1="64" y1="211.4" x2="784" y2="211.4" stroke="#E8E3D7"/><text x="54" y="215.4" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">60%</text><line x1="64" y1="254.3" x2="784" y2="254.3" stroke="#E8E3D7"/><text x="54" y="258.3" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">50%</text><line x1="64" y1="297.1" x2="784" y2="297.1" stroke="#E8E3D7"/><text x="54" y="301.1" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="end">40%</text><line x1="64.0" y1="40" x2="64.0" y2="340" stroke="#F3F0E9"/><text x="64.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text><line x1="184.0" y1="40" x2="184.0" y2="340" stroke="#F3F0E9"/><text x="184.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">6</text><line x1="304.0" y1="40" x2="304.0" y2="340" stroke="#F3F0E9"/><text x="304.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">12</text><line x1="424.0" y1="40" x2="424.0" y2="340" stroke="#F3F0E9"/><text x="424.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">18</text><line x1="544.0" y1="40" x2="544.0" y2="340" stroke="#F3F0E9"/><text x="544.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">24</text><line x1="664.0" y1="40" x2="664.0" y2="340" stroke="#F3F0E9"/><text x="664.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">30</text><line x1="784.0" y1="40" x2="784.0" y2="340" stroke="#F3F0E9"/><text x="784.0" y="360" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">36</text><text x="424" y="382" font-size="11.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">개월</text><polygon points="64.0,40.0 84.0,70.5 104.0,88.5 124.0,97.8 144.0,106.5 164.0,113.3 184.0,118.9 204.0,123.9 224.0,131.4 244.0,137.1 264.0,142.1 284.0,149.1 304.0,157.5 324.0,160.1 344.0,164.8 364.0,168.1 384.0,170.2 404.0,174.9 424.0,181.1 444.0,182.5 464.0,188.1 484.0,190.9 504.0,192.4 524.0,196.0 544.0,200.3 564.0,204.7 584.0,208.4 604.0,210.6 624.0,215.1 644.0,219.0 664.0,221.3 684.0,225.2 704.0,227.6 724.0,230.0 744.0,232.5 764.0,234.1 784.0,236.7 784.0,204.3 764.0,201.9 744.0,200.3 724.0,198.0 704.0,195.8 684.0,193.5 664.0,189.9 644.0,187.7 624.0,184.1 604.0,179.9 584.0,177.8 564.0,174.4 544.0,170.3 524.0,166.3 504.0,162.9 484.0,161.6 464.0,159.0 444.0,153.8 424.0,152.6 404.0,146.9 384.0,142.5 364.0,140.7 344.0,137.6 324.0,133.4 304.0,131.0 284.0,123.5 264.0,117.2 244.0,112.7 224.0,107.6 204.0,101.0 184.0,96.7 164.0,91.8 144.0,86.0 124.0,78.7 104.0,71.0 84.0,56.8 64.0,40.0" fill="#A16207" fill-opacity="0.10" stroke="none"/><polyline points="64.0,40.0 84.0,62.7 104.0,78.9 124.0,87.4 144.0,95.4 164.0,101.7 184.0,106.9 204.0,111.6 224.0,118.7 244.0,124.1 264.0,128.9 284.0,135.6 304.0,143.6 324.0,146.1 344.0,150.5 364.0,153.7 384.0,155.7 404.0,160.3 424.0,166.2 444.0,167.5 464.0,172.9 484.0,175.7 504.0,177.1 524.0,180.5 544.0,184.7 564.0,189.0 584.0,192.6 604.0,194.7 624.0,199.1 644.0,202.8 664.0,205.1 684.0,208.9 704.0,211.2 724.0,213.6 744.0,215.9 764.0,217.6 784.0,220.0" fill="none" stroke="#A16207" stroke-width="2"/><polygon points="64.0,48.0 84.0,113.9 104.0,132.1 124.0,146.5 144.0,160.2 164.0,169.6 184.0,181.9 204.0,198.2 224.0,210.6 244.0,213.5 264.0,219.4 284.0,221.4 304.0,227.4 324.0,229.5 344.0,232.6 364.0,234.7 384.0,239.9 404.0,244.2 424.0,247.4 444.0,249.6 464.0,253.9 484.0,259.4 504.0,266.1 524.0,268.4 544.0,271.8 564.0,276.4 584.0,284.6 604.0,289.3 624.0,297.4 644.0,298.7 664.0,301.2 684.0,305.0 704.0,310.1 724.0,312.7 744.0,314.0 764.0,318.1 784.0,320.9 784.0,280.3 764.0,277.6 744.0,273.5 724.0,272.2 704.0,269.7 684.0,264.7 664.0,261.0 644.0,258.5 624.0,257.3 604.0,249.3 584.0,244.7 564.0,236.8 544.0,232.4 524.0,229.1 504.0,226.9 484.0,220.5 464.0,215.2 444.0,211.1 424.0,209.0 404.0,206.0 384.0,201.9 364.0,197.0 344.0,195.0 324.0,192.0 304.0,190.1 284.0,184.5 264.0,182.6 244.0,177.1 224.0,174.4 204.0,162.8 184.0,147.8 164.0,136.7 144.0,128.3 124.0,116.2 104.0,103.6 84.0,88.1 64.0,41.1" fill="#9B2C2C" fill-opacity="0.10" stroke="none"/><polyline points="64.0,43.0 84.0,99.7 104.0,116.6 124.0,130.3 144.0,143.2 164.0,152.2 184.0,163.9 204.0,179.6 224.0,191.8 244.0,194.6 264.0,200.3 284.0,202.2 304.0,208.1 324.0,210.1 344.0,213.1 364.0,215.2 384.0,220.3 404.0,224.5 424.0,227.7 444.0,229.8 464.0,234.1 484.0,239.5 504.0,246.1 524.0,248.3 544.0,251.7 564.0,256.2 584.0,264.3 604.0,269.0 624.0,277.1 644.0,278.4 664.0,280.8 684.0,284.6 704.0,289.7 724.0,292.3 744.0,293.6 764.0,297.7 784.0,300.5" fill="none" stroke="#9B2C2C" stroke-width="2"/><polygon points="64.0,43.3 84.0,75.8 104.0,90.8 124.0,100.9 144.0,108.8 164.0,117.4 184.0,123.8 204.0,132.9 224.0,141.5 244.0,145.3 264.0,148.6 284.0,152.4 304.0,155.8 324.0,161.5 344.0,164.3 364.0,171.9 384.0,173.6 404.0,176.6 424.0,179.0 444.0,184.4 464.0,188.1 484.0,189.9 504.0,193.7 524.0,199.9 544.0,203.1 564.0,205.6 584.0,206.9 604.0,210.2 624.0,212.9 644.0,216.3 664.0,219.8 684.0,224.1 704.0,227.7 724.0,229.2 744.0,231.4 764.0,235.2 784.0,237.6 784.0,207.2 764.0,205.0 744.0,201.4 724.0,199.3 704.0,197.9 684.0,194.5 664.0,190.6 644.0,187.3 624.0,184.1 604.0,181.6 584.0,178.5 564.0,177.3 544.0,174.9 524.0,172.0 504.0,166.1 484.0,162.7 464.0,160.9 444.0,157.6 424.0,152.5 404.0,150.3 384.0,147.6 364.0,146.0 344.0,139.1 324.0,136.4 304.0,131.3 284.0,128.2 264.0,124.7 244.0,121.7 224.0,118.3 204.0,110.6 184.0,102.4 164.0,96.8 144.0,89.4 124.0,82.5 104.0,74.0 84.0,61.8 64.0,40.2" fill="#2F6F4E" fill-opacity="0.10" stroke="none"/><polyline points="64.0,40.8 84.0,68.0 104.0,81.6 124.0,90.9 144.0,98.4 164.0,106.3 184.0,112.4 204.0,121.0 224.0,129.2 244.0,132.9 264.0,136.0 284.0,139.7 304.0,142.9 324.0,148.4 344.0,151.1 364.0,158.4 384.0,160.0 404.0,162.9 424.0,165.2 444.0,170.5 464.0,174.0 484.0,175.8 504.0,179.4 524.0,185.5 544.0,188.5 564.0,191.0 584.0,192.2 604.0,195.5 624.0,198.1 644.0,201.4 664.0,204.8 684.0,208.9 704.0,212.4 724.0,213.8 744.0,216.0 764.0,219.7 784.0,222.0" fill="none" stroke="#2F6F4E" stroke-width="2"/><line x1="574" y1="48" x2="592" y2="48" stroke="#A16207" stroke-width="2.5"/><text x="598" y="52" font-size="12" fill="#101828">HFmrEF (n=1,117)</text><line x1="574" y1="68" x2="592" y2="68" stroke="#9B2C2C" stroke-width="2.5"/><text x="598" y="72" font-size="12" fill="#101828">HFrEF (n=657)</text><line x1="574" y1="88" x2="592" y2="88" stroke="#2F6F4E" stroke-width="2.5"/><text x="598" y="92" font-size="12" fill="#101828">normal (n=1,341)</text><line x1="64" y1="340" x2="784" y2="340" stroke="#B9B09B"/></svg>
-<figcaption><b>그림 2.</b> EF 상태별 crude Kaplan–Meier 생존곡선 (음영 = 95% CI). 시간 0은 그 상태가
-처음 관측된 날, 사건은 사망, 중도절단은 마지막 심초음파. HFmrEF n=1,117 · HFrEF n=657 · 정상 n=1,341.</figcaption>
-</figure>
-
-<table>
-<thead><tr><th>시작 상태</th><th class="n">crude 12개월 생존</th><th class="n">crude 12개월 사망</th><th>읽는 법</th></tr></thead>
-<tbody>
-<tr><td>HFrEF</td><td class="n">60.8%</td><td class="n">39.2%</td><td>가장 나쁨</td></tr>
-<tr><td>HFmrEF</td><td class="n">75.8%</td><td class="n">24.2%</td><td>중간</td></tr>
-<tr><td>정상</td><td class="n">76.0%</td><td class="n">24.0%</td><td>HFmrEF와 거의 같음</td></tr>
-</tbody>
-</table>
-
-<div class="warnbox"><span class="lbl">여기서 중요한 발견 하나</span>
-EF가 정상 범위로 돌아와도 예후가 정상화되지 않는다(정상군 76.0% vs HFmrEF군 75.8%). 이 코호트가
-<b>심부전 병력자</b>이기 때문이다. 그래서 "정상 회복 = 끝"이 아니라 <b>회복 후에도 추적이 필요하다</b>는
-해석이 나온다.
-</div>
-
-<p><b>모형과 crude의 차이</b>는 두 가지에서 온다. ① 모형은 12개월 확률을 상태 <b>전체</b>의 이동으로
-계산하고 crude는 관측된 사망만 센다. ② crude의 "정상"군은 HFmrEF였던 사람이 나중에 정상이 된 경우라
-처음부터 정상이던 사람보다 나쁘다. 이 둘을 구분하는 것이 다음 단계의 과제다.</p>
-
-<h2><span class="num">07</span>다음 계획 — 인과모형과 환자별 이득 (최종 목표)</h2>
-
-<p class="lead">최종 목표는 한 줄이다. <b>"이 환자에게 지금 약을 시작하면 12개월 HFrEF 위험이 몇 %p 줄어드는가."</b>
-지금 표는 그 질문에 답하지 못한다. 순서대로 세 단계가 필요하다.</p>
-
-<h3>1단계 — 지금 신호가 교란인지 먼저 반증한다</h3>
-<p>새 모형이 필요 없다. 현재 데이터로 1~2일이면 된다.</p>
-<ul>
-<li><b>신규 시작 vs 기존 유지 층화</b> — 이미 약을 먹던 안정 외래환자에서 사망 위험비가 1에 가까워지면,
-관찰된 +6.3%p는 약이 아니라 <b>시작 시점의 급성악화</b>다. 가장 결정적인 검사</li>
-<li><b>Negative control outcome</b> — 골절·백내장처럼 약과 무관한 결과에서도 신호가 나오면 교란의 증거</li>
-<li><b>Positivity 점검</b> — EF 40에 BNP가 매우 높은 사람 중 약을 안 받은 사람이 실제로 있는지.
-없으면 그 층은 추정이 아니라 외삽이다</li>
-</ul>
-<p>결과에 따라 갈린다. 위험비가 1로 내려가면 논문은 <b>"이득 없음"</b>으로 확정되고, 1.9가 유지되면
-시간가변 교란을 다루는 본격 인과 설계로 간다.</p>
-
-<h3>2단계 — estimand를 고정하고 목표시험을 모방한다</h3>
-<table>
-<thead><tr><th>estimand</th><th>질문</th><th>필요한 것</th></tr></thead>
-<tbody>
-<tr><td>E1 개시 효과</td><td>"지금 시작 vs 안 함, 12개월 HFrEF 위험차"</td><td>시간고정 A + 교란 통제</td></tr>
-<tr><td>E2 유지 효과</td><td>"시작 후 지속 vs 중단"</td><td>clone-censor-weight</td></tr>
-<tr><td>E3 동적 전략</td><td>"EF&lt;45 &amp; BNP↑면 증량" vs "3개월 고정 재검"</td><td>다중상태 + 처방 규칙</td></tr>
-</tbody>
-</table>
-<p>지켜야 할 세 가지: ① 시간 0은 <b>EF 검사일</b>(처방 시작일로 잡으면 immortal time bias) ② 90일
-grace period 안의 시작을 노출로 처리 ③ 경쟁사건이 있으므로 cause-specific hazard가 아니라
-<b>누적발생(Aalen–Johansen)</b>으로 답한다.</p>
-
-<h3>3단계 — 환자별 이득 계산 (최종 목표)</h3>
-<p>이득 = Δ(12개월 HFrEF 위험) + Δ(사망 위험). QALY 자료가 없으니 <b>위험차</b>로 낸다.
-그 다음 score 분위별로 이득 곡선을 그리면 "누구에게 이득이 큰가"가 나온다. score는 따로 만들지 않고
-<b>모형이 뱉는 12개월 HFrEF 위험</b>을 그대로 쓴다 — 점수와 이득이 같은 모형에서 나와야 논리가 안 꼬인다.</p>
-
-<div class="warnbox"><span class="lbl">데이터 전제 — 지금 없는 것</span>
-<b>처방 시작일</b>이 없다. 현재는 "index 후 90일 내 시작 여부"만 있고 정확한 날짜가 없어서
-시간가변 처방 A(t)을 못 만든다. 용량·NYHA도 없다. 2·3단계를 제대로 하려면
-<b>MIMIC-IV hosp 테이블(prescriptions·patients·admissions) 재다운로드</b>가 필요하다.
-1단계는 지금 데이터로 가능하다.
-</div>
-
-<h2><span class="num">08</span>직접 넣어보기 — 환자 수치 → 확률표</h2>
-
-<p class="lead">아래는 §05와 같은 모형을 브라우저에서 직접 계산하는 데모다. 서버로 아무것도 보내지 않는다.</p>
-
-
-<div class="calc" id="demo">
-  <div class="calc-in">
-    <div class="calc-row">
-      <div><label for="c-age">나이</label><input id="c-age" type="number" value="62" min="18" max="100" step="1"></div>
-      <div><label for="c-sex">성별</label><select id="c-sex"><option value="0">남</option><option value="1">여</option></select></div>
-    </div>
-    <div class="calc-row">
-      <div><label for="c-ef">EF (%)</label><input id="c-ef" type="number" value="45" min="40" max="49" step="1"></div>
-      <div><label for="c-lvedd">LVEDD (cm)</label><input id="c-lvedd" type="number" value="5.0" min="3" max="8" step="0.1"></div>
-    </div>
-    <div class="calc-row">
-      <div><label for="c-cr">Cr (mg/dL)</label><input id="c-cr" type="number" value="1.0" min="0.3" max="8" step="0.1"></div>
-      <div><label for="c-hb">Hb (g/dL)</label><input id="c-hb" type="number" value="13.5" min="5" max="20" step="0.1"></div>
-    </div>
-    <div class="calc-row">
-      <div><label for="c-na">Na (mmol/L)</label><input id="c-na" type="number" value="139" min="115" max="155" step="1"></div>
-      <div><label for="c-treat">현재 GDMT</label><select id="c-treat"><option value="0">복용 안 함</option><option value="1">복용 중</option></select></div>
-    </div>
-    <div class="calc-actions">
-      <button id="c-run" type="button">계산</button>
-      <button id="c-reset" type="button" class="ghost">초기화</button>
-    </div>
-    <p class="calc-note" id="c-note"></p>
+<section id="noise">
+  <h2><span class="num">01</span>잡음 분리 — 왜 짧은 간격인가</h2>
+  <p>관측값 = 참값 + 잡음이라 하면, 두 번 측정의 차이는</p>
+  <div class="mathbox">
+    <span class="lbl">분산분해</span>
+    Var(ΔEF) = 2σ² + Var(진짜 변화)
+    <span class="read">간격이 충분히 짧으면 진짜 변화 ≈ 0이므로 Var(ΔEF) ≈ 2σ². 여기서 σ를 얻는다.</span>
   </div>
+  <p>30일 이내 쌍에서 평균 ΔEF는 +0.33%p로 0에 가깝다 — 이 가정이 데이터로 지지된다.
+  같은 계산을 기간별로 반복하면(1–7일, 1–3개월, 6–12개월) ΔSD가 8.2–10.2로 거의 변하지 않는다.
+  즉 <b>1년 안의 EF 변화는 잡음에 묻혀 검출되지 않는다</b>.</p>
+  <p class="note">추정치: 1회 측정 잡음 SD <b>7.08%p</b>(전체), EF 30–39 구간 <b>7.41</b>. 이후 계산은 보수적으로 7.41을 쓴다.</p>
+</section>
 
-  <div class="calc-out">
-    <div class="calc-head"><span>시점</span><span>시나리오</span><span>정상</span><span>HFmrEF</span><span>HFrEF</span><span>사망</span></div>
-    <div id="c-rows"><p class="calc-empty">계산을 누르면 표가 나온다.</p></div>
+<section id="repro">
+  <h2><span class="num">02</span>재현율 — 가정 없는 확신도</h2>
+  <p>확신도를 사후확률로 정의하면 “진짜 변화의 사전분포”를 정해야 하고, 그 선택에 답이 좌우된다.
+  그래서 <b>주 지표는 관측 가능한 재현율</b>로 둔다.</p>
+  <div class="mathbox">
+    <span class="lbl">정의</span>
+    재현율 = P(재측정 시 같은 EF 범주 | 현재 범주)
+    <span class="read">30일 내 재측정 쌍에서 직접 센다. 분포 가정이 없다.</span>
   </div>
-</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>현재 범주</th><th class="n">n</th><th class="n">재현율</th></tr></thead>
+      <tbody>
+        <tr><td>HFrEF (&lt;40)</td><td class="n">2,934</td><td class="n">75.8%</td></tr>
+        <tr><td>HFmrEF (40–49)</td><td class="n">1,417</td><td class="n"><b>42.5%</b></td></tr>
+        <tr><td>정상 (≥50)</td><td class="n">8,171</td><td class="n">92.2%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>문턱까지 거리로도 단조롭게 갈린다: 0–2%p 62.6%, 5–10%p 77.1%, 10–30%p 91.0%.
+  <b>HFmrEF 판정은 다시 재면 절반 이상이 다른 범주로 간다</b>는 것이 이 논문의 출발점이다.</p>
+</section>
 
-<div class="warnbox"><span class="lbl">이 데모의 한계 — 먼저 읽어야 함</span>
-① 이 표는 <b>인과효과가 아니다</b>. "약 시작" 행은 실제로 약을 받은 사람들의 관측 경로이고,
-그 사람들은 원래 더 아팠다(교란 by indication). 두 행의 차이를 <b>약의 이득으로 읽으면 안 된다</b>.<br>
-② 모형은 EF 40–49 · landmark 90일 생존 · 초음파 2회 이상인 1,377명(관측구간 3,358건)에서 적합했다.<br>
-③ 연구용 시연이며 진단·처방 근거가 아니다. ④ 입력값은 브라우저 밖으로 나가지 않는다.</div>
+<section id="endpoint">
+  <h2><span class="num">03</span>종점 — 치료 문턱 교차</h2>
+  <p>3분류(40/50)의 경계가 곧 치료 문턱이므로, 범주 변화는 자동으로 임상 문턱 교차가 된다.
+  별도로 ICD 문턱(&lt;35)을 2차 종점으로 둔다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>종점</th><th class="n">발생률</th><th>임상 의미</th></tr></thead>
+      <tbody>
+        <tr><td>40 또는 50 교차 (주)</td><td class="n">17.2%</td><td>ARNI/MRA 적응, HFpEF 경계</td></tr>
+        <tr><td>&lt;35 교차 (2차)</td><td class="n">8.7%</td><td>ICD 상담 대상 변화</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="warnbox">
+    <span class="lbl">해석 주의</span>
+    이 종점은 <b>측정 불안정성</b>이지 환자 악화가 아니다. “재측정 시 판정이 뒤집힌다”로만 서술한다.
+  </div>
+</section>
 
-<script id="model-data" type="application/json">{"n": 4554, "n_intervals": 3358, "n_patients": 1377, "complete_case": {"CORE6": 0.7439613526570048, "CORE7": 0.5660957400087835}, "pooled_death_rate": 0.00014616623953342067, "zmu": {"egfr": 62.22128711207623, "ef_index": 42.68115942028985, "lvedd": 4.892402287856829, "anchor_age": 67.0862977602108, "logbnp": 8.222896263835784, "bnp_miss": 0.7075098814229249, "los_days": 9.460474308300395, "adm_any": 0.8025911286780852, "sodium": 139.06368028107158, "hemoglobin": 11.439613526570048, "loop_diuretic": 0.19543258673693456, "dx_af": 0.2002635046113307, "dx_valve_disease": 0.1411945542380325, "dx_diabetes": 0.24462011418533158, "dx_ckd": 0.20531400966183574, "tr_velocity": 2.7350900302173913, "tr_miss": 0.2624066754501537}, "zsd": {"egfr": 28.172319721029737, "ef_index": 2.5941123202601277, "lvedd": 0.713350016848057, "anchor_age": 14.795799358907972, "logbnp": 0.7894826592225679, "bnp_miss": 0.4549561521570336, "los_days": 13.325186460092892, "adm_any": 0.398087185894472, "sodium": 3.6441641716724105, "hemoglobin": 2.0500498844758908, "loop_diuretic": 0.39657688530953444, "dx_af": 0.40024143926718725, "dx_valve_disease": 0.3482603692422456, "dx_diabetes": 0.42990894198204505, "dx_ckd": 0.4039752502911942, "tr_velocity": 0.44682362971075934, "tr_miss": 0.43999082085074903}, "models": {"FULL14": {"k": 14, "cols": ["ef_index", "lvedd", "anchor_age", "logbnp", "los_days", "egfr", "adm_any", "sodium", "hemoglobin", "loop_diuretic", "dx_af", "dx_valve_disease", "dx_diabetes", "dx_ckd"], "coef": {"0->1": [-7.018644553975778, 0.0201854925076728, 0.0974181827543676, 0.1328457255220816, 0.062125705932493266, 0.012353169100841898, 0.12618592208142146, 0.016855170636753115, 0.184078180288029, -0.15827650785239367, 0.06508989962868857, 0.04174701170926005, -0.028461209358971503, 0.13115706497645008, -0.04054242368417114, 0.10522056939247805], "0->2": [-7.704034294691002, 0.1988682836221191, 0.05862706508833268, 0.01098638162980632, 0.06308740359552331, -0.12708799832372625, -0.3396691707627554, 0.16557355266288237, 0.011318339483781312, -0.05168974453141587, -0.038892485216329514, 0.14018331688882582, -0.26590779401442055, 0.2957684239399921, -0.25505093435690696, -0.027601219615635546], "0->3": null, "1->0": [-6.4395692629461445, 0.08730593437060676, -0.17636758159323676, -0.2849913889121459, -0.09065649703316124, 0.034347261848761274, 0.04558750456709796, 0.10439714200013309, 0.010803797686704064, -0.14846294976666252, 0.2453922459206378, 0.08822045811636478, 0.003887133731708945, -0.10501335454585262, 0.10441273541248192, -0.023911593353321423], "1->2": [-6.620459325545555, 0.008344172835870398, 0.15867164992114802, 0.07221367945195115, 0.05992228127853173, -0.04067928894760756, 0.11461035134307866, 0.055087580536817414, -0.031729364260654966, -0.0530916025357813, 0.033719190054498055, -0.07091043082588959, -0.004756406468332815, 0.026896881174251253, 0.034603772697112074, 0.18142595383181978], "1->3": [-8.070732125011908, 0.20394692452933058, -0.2650619844390824, 0.4869966096190729, 0.09838842208342023, -0.16543464319098175, 0.0632824729051417, 0.07074604106741268, 0.03804308695133201, -0.08918761468078965, -0.026376033995141296, 0.007868654348327685, -0.132593815830659, 0.09480904231421958, 0.23905747336064184, 0.6483633760287123], "2->0": [-7.431647391248004, 0.06554596991576495, -0.3123741272225029, -0.2952869337806347, -0.14673995119728817, 0.08316063231401341, -0.21934379679428012, 0.08388153751651306, -0.14150905219883514, -0.1080880908864946, 0.11653458433697568, 0.019635640667204877, -0.042398806012720294, 0.038649060089957325, -0.16616606334040254, 0.005878124982539068], "2->1": [-6.7088956478280934, 0.3265367546986038, -0.045115397621958216, -0.05955593098020773, -0.17689377779661494, 0.14821688068724387, -0.03428097661803092, 0.04021054184740193, 0.11782914758482665, 0.008865883380668134, 0.0746791218323254, -0.02820630412559669, 0.0535938576257697, 0.010144284277066144, 0.04984161790924128, 0.39554001356013185], "2->3": null}, "hr_1_3": 1.912408373000652, "hr_1_2": 1.1989257575645964, "ate12": [-0.02511384761327735, -0.03652936140273227, -0.003936399442607933, 0.06557960845861745], "ate_ci": [[-0.02511384761327735, -0.03652936140273227, -0.003936399442607933, 0.06557960845861745], [-0.02511384761327735, -0.03652936140273227, -0.003936399442607933, 0.06557960845861745]], "hr_ci": [1.912408373000652, 1.912408373000652], "e_value": 3.2333540237078826, "n_boot": 1}, "CORE7": {"k": 8, "cols": ["ef_index", "lvedd", "anchor_age", "egfr", "sodium", "hemoglobin", "tr_velocity", "tr_miss"], "coef": {"0->1": [-7.05107110137378, 0.02111621932464363, 0.10021789419550185, 0.17922967042044863, 0.10004739612164973, 0.18026044105707995, -0.2050576839721727, -0.06901402234262924, 0.0644511735827076, 0.1773112102996331], "0->2": [-7.772324459523031, 0.1693610655250049, 0.041607340320298766, 0.03390974011163134, -0.2803727625924983, -0.027103012889627007, 0.009957372594516735, 0.09101103061470016, 0.10901928858976402, 0.060097448593924366], "0->3": null, "1->0": [-6.533287989733427, 0.05790256291414176, -0.19194641292185463, -0.2711731199779555, -0.007374992764789562, 0.03080998274240618, -0.21060458997431247, -0.045959068145031985, -0.09096452522274136, 0.13044949901550318], "1->2": [-6.653164353876658, 0.005938141418769573, 0.14585885375253668, 0.07621321231615162, 0.07739345824695791, -0.01364767796520182, -0.07557959930163058, 0.015089105487735633, 0.058553616491507574, 0.22724646043395083], "1->3": [-8.047349159099628, 0.19359428859703942, -0.2774239210421628, 0.4675076986052161, -0.08948074320391476, 0.07009569147669563, -0.12468477994501832, 0.2036194821631698, 0.166419541129366, 0.6210591361642502], "2->0": [-7.469956415642631, 0.07978945601786855, -0.38080904756466283, -0.3643955895975366, -0.11456091096296292, -0.1696611938194533, -0.09833203721968575, 0.3552518854086999, -0.12027515345556812, -0.05767081419530002], "2->1": [-6.808429143137453, 0.3150414987875172, -0.02251095828449309, -0.05113096705587247, -0.04445658634976679, 0.12637463759954679, -0.03452673478642736, -0.08207262975933387, 0.00753509542991344, 0.5214194057520909], "2->3": null}, "hr_1_3": 1.8608979427747092, "hr_1_2": 1.255139171968103, "ate12": [-0.002125358107599162, -0.05562113928561382, -0.002545574352069243, 0.06029207174528214], "ate_ci": [[-0.002125358107599162, -0.05562113928561382, -0.002545574352069243, 0.06029207174528214], [-0.002125358107599162, -0.05562113928561382, -0.002545574352069243, 0.06029207174528214]], "hr_ci": [1.8608979427747092, 1.8608979427747092], "e_value": 3.1266163990865525, "n_boot": 1}, "CORE6": {"k": 6, "cols": ["ef_index", "lvedd", "anchor_age", "egfr", "sodium", "hemoglobin"], "coef": {"0->1": [-7.05845254361121, 0.01938893821214471, 0.09431684774070015, 0.14539638172945035, 0.10904518549189147, 0.1659717612615672, -0.1899794558536777, 0.16833909179538925], "0->2": [-7.781182549806818, 0.1745226382757949, 0.05721669779561808, 0.026872193503872682, -0.2989304248858141, -0.023198058719778855, 0.005107156244991681, 0.09260323002517329], "0->3": null, "1->0": [-6.525084689734941, 0.05906133570736721, -0.19428427323074962, -0.25603502189001187, 0.00013015730183363382, 0.039922687452221134, -0.20907832016671998, 0.12483646453254692], "1->2": [-6.650804849529831, 0.006772756757137024, 0.14477850912682075, 0.06348792521447803, 0.07589685956742452, -0.01734311379838151, -0.07671136188924386, 0.22709933977313423], "1->3": [-8.036927833852552, 0.19621123483726138, -0.25816733675356524, 0.4584511865415147, -0.11285297525657498, 0.05772594812713188, -0.14002743209005428, 0.6498335887974762], "2->0": [-7.527251638103081, 0.07429444328577486, -0.31293216276707164, -0.2775505746564241, -0.1434539755727523, -0.17177899915967532, -0.10527142741559097, 0.11195474965012532], "2->1": [-6.787675947486589, 0.3146344047555149, -0.03141385169299208, -0.06648557551872669, -0.038229972518141926, 0.11898930855491568, -0.029897872382620327, 0.4963953066844377], "2->3": null}, "hr_1_3": 1.9152220880828228, "hr_1_2": 1.2549545286464632, "ate12": [-0.0003141495244986142, -0.057980353979705204, -0.00483434219506798, 0.06312884569927216], "ate_ci": [[-0.0003141495244986142, -0.057980353979705204, -0.00483434219506798, 0.06312884569927216], [-0.0003141495244986142, -0.057980353979705204, -0.00483434219506798, 0.06312884569927216]], "hr_ci": [1.9152220880828228, 1.9152220880828228], "e_value": 3.239175848075031, "n_boot": 1}}}</script>
-<script>
-(function(){
-  var M = JSON.parse(document.getElementById('model-data').textContent);
-  var F = M.models.CORE6, COLS = F.cols, C = F.coef, N = COLS.length;
-  var zmu = COLS.map(function(c){return M.zmu[c];});
-  var zsd = COLS.map(function(c){return M.zsd[c];});
-  var TRANS = [[0,1],[0,2],[0,3],[1,0],[1,2],[1,3],[2,0],[2,1],[2,3]];
-  var STATES = ['normal','mrEF','rEF','dead'];
-  var POOL = M.pooled_death_rate || 1e-4;
+<section id="model">
+  <h2><span class="num">04</span>모형 — 누수를 먼저 막는다</h2>
+  <p>초기 구현에서 현재 검사의 LVEDD·심박수를 입력으로 넣었더니 AUC가 0.841로 나왔다.
+  그 값들은 종점 EF와 <b>같은 시점</b>에 측정되므로 미래 정보가 새어 들어간 것이다.
+  직전 검사 값만 쓰도록 고친 뒤 AUC는 0.824가 됐다.</p>
+  <div class="grid2">
+    <div class="card">
+      <p class="card-title">입력 (직전 검사만)</p>
+      <p>직전 EF, 문턱까지 거리, 간격(일), 직전 LVEDD·LVOT VTI·TR velocity·심박수·수축기혈압·체표면적, 연도</p>
+    </div>
+    <div class="card">
+      <p class="card-title">결측 처리</p>
+      <p>중앙값 대체 + <b>결측 지시자</b>를 별도 변수로 추가. 결측 자체가 검사 프로토콜의 정보를 담기 때문.</p>
+    </div>
+  </div>
+  <p>모형은 랜덤포레스트(주)와 XGBoost(민감도). 하이퍼파라미터는 고정값을 썼고, 성능 차이는 fold 표준편차 안이다.</p>
+</section>
 
-  function eye(){ return [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]; }
-  function mul(A,B){ var R=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
-    for(var i=0;i<4;i++)for(var j=0;j<4;j++){var s=0;for(var k=0;k<4;k++)s+=A[i][k]*B[k][j];R[i][j]=s;} return R; }
-  function expm(A){
-    var nrm=0,j,i,s,q;
-    for(j=0;j<4;j++){s=0;for(i=0;i<4;i++)s+=Math.abs(A[i][j]); if(s>nrm)nrm=s;}
-    var sq=Math.max(0,Math.ceil(Math.log2(Math.max(nrm,1e-12)))+1);
-    var X=A.map(function(r){return r.map(function(v){return v/Math.pow(2,sq);});});
-    var E=eye(), T=eye();
-    for(var k=1;k<14;k++){ T=mul(T,X).map(function(r){return r.map(function(v){return v/k;});});
-      E=E.map(function(r,ii){return r.map(function(v,jj){return v+T[ii][jj];});}); }
-    for(q=0;q<sq;q++) E=mul(E,E);
-    return E;
-  }
-  function egfr(cr,age,female){
-    var k=female?0.7:0.9, a=female?-0.241:-0.302, s=Math.max(cr,0.1);
-    return 142*Math.pow(Math.min(s/k,1),a)*Math.pow(Math.max(s/k,1),-1.2)*Math.pow(0.9938,age)*(female?1.012:1);
-  }
-  function qmat(raw,treat){
-    var z=raw.map(function(v,i){return (v-zmu[i])/zsd[i];});
-    var Q=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
-    TRANS.forEach(function(t){
-      var key=t[0]+'->'+t[1], b=C[key];
-      if(!b){ Q[t[0]][t[1]] = (t[1]===3 ? POOL : 0); return; }
-      var eta=b[0];
-      for(var k=0;k<N;k++) eta+=b[k+1]*z[k];
-      eta+=b[N+1]*treat;
-      Q[t[0]][t[1]]=Math.exp(Math.min(Math.max(eta,Math.log(1e-8)),Math.log(0.01)));
-    });
-    for(var i=0;i<3;i++) Q[i][i]=-(Q[i][0]+Q[i][1]+Q[i][2]+Q[i][3]);
-    return Q;
-  }
-  function monthly(raw,treat){
-    var Q=qmat(raw,treat);
-    return expm(Q.map(function(r){return r.map(function(v){return v*30.44;});}));
-  }
-  function occupancy(Mm,m){
-    var P=eye(); for(var k=0;k<m;k++) P=mul(P,Mm);
-    return [P[1][0],P[1][1],P[1][2],P[1][3]];
-  }
-  function pct(v){ return (v*100).toFixed(1)+'%'; }
-  function pp(v){ return (v>=0?'+':'')+(v*100).toFixed(1)+'%p'; }
-  function cls(state,d){
-    if(Math.abs(d)<5e-5||state==='mrEF') return '';
-    var good=(state==='normal')?d>0:d<0;
-    return good?'down':'up';
-  }
-  function render(){
-    var age=+document.getElementById('c-age').value;
-    var female=+document.getElementById('c-sex').value===1;
-    var ef=+document.getElementById('c-ef').value;
-    var lvedd=+document.getElementById('c-lvedd').value;
-    var cr=+document.getElementById('c-cr').value;
-    var hb=+document.getElementById('c-hb').value;
-    var na=+document.getElementById('c-na').value;
-    var treat=+document.getElementById('c-treat').value;
-    var g=egfr(cr,age,female);
-    var raw=[ef,lvedd,age,g,na,hb];
-    var off=monthly(raw,0), on=monthly(raw,1);
-    var rows='';
-    [3,6,9,12].forEach(function(m){
-      var a=occupancy(off,m), b=occupancy(on,m);
-      rows+='<div class="calc-line off"><span>'+m+'개월</span><span class="lab">무약</span>'+
-        a.map(function(x){return '<span>'+pct(x)+'</span>';}).join('')+'</div>';
-      rows+='<div class="calc-line"><span></span><span class="lab">약 시작</span>'+
-        b.map(function(x){return '<span>'+pct(x)+'</span>';}).join('')+'</div>';
-      rows+='<div class="calc-line delta"><span></span><span class="lab">차이</span>'+
-        a.map(function(v,i){var d=b[i]-v;return '<span class="'+cls(STATES[i],d)+'">'+pp(d)+'</span>';}).join('')+'</div>';
-    });
-    document.getElementById('c-rows').innerHTML=rows;
-    var notes=['eGFR(CKD-EPI 2021) '+g.toFixed(0)+' mL/min/1.73m².'];
-    if(ef<40||ef>49) notes.push('EF '+ef+'%는 학습 범위(40–49) 밖이라 외삽이다.');
-    notes.push('차이는 인과효과가 아니다.');
-    document.getElementById('c-note').textContent=notes.join(' ');
-  }
-  document.getElementById('c-run').addEventListener('click',render);
-  document.getElementById('c-reset').addEventListener('click',function(){
-    [['c-age','62'],['c-ef','45'],['c-lvedd','5.0'],['c-cr','1.0'],
-     ['c-hb','13.5'],['c-na','139'],['c-treat','0'],['c-sex','0']]
-      .forEach(function(kv){ document.getElementById(kv[0]).value=kv[1]; });
-    render();
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('.calc-in input,.calc-in select'),function(el){
-    el.addEventListener('change',render);
-  });
-  render();
-})();
-</script>
+<section id="validation">
+  <h2><span class="num">05</span>검증 — 환자 단위로 자른다</h2>
+  <p>같은 환자가 여러 쌍을 만들기 때문에 무작위 분할하면 낙관적 편향이 생긴다.
+  <b>GroupKFold(5)</b>로 환자 단위 분할하고, out-of-fold 예측으로 AUC·Brier를 계산한다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>모형</th><th class="n">30일 AUC</th><th class="n">SD</th><th class="n">180일 AUC</th><th class="n">Brier</th></tr></thead>
+      <tbody>
+        <tr><td>거리 규칙</td><td class="n">0.703</td><td class="n">—</td><td class="n">0.703</td><td class="n">—</td></tr>
+        <tr><td>로지스틱</td><td class="n">0.791</td><td class="n">0.017</td><td class="n">0.795</td><td class="n">0.119</td></tr>
+        <tr><td>랜덤포레스트</td><td class="n">0.824</td><td class="n">0.011</td><td class="n">0.825</td><td class="n">0.109</td></tr>
+        <tr><td>XGBoost</td><td class="n">0.824</td><td class="n">0.012</td><td class="n">0.828</td><td class="n">0.110</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>트리 계열이 로지스틱을 +0.03, 거리 규칙을 +0.12 이긴다. Brier도 낮아 확률 보정이 더 좋다.
+  즉 “문턱에 가깝다” 이상의 비선형 정보가 실제로 존재한다.</p>
+</section>
 
+<section id="notdone">
+  <h2><span class="num">06</span>아직 안 한 것</h2>
+  <ul>
+    <li><b>Temporal split</b>: 연도 기준 학습/검증 분리 (외부검증 대체).</li>
+    <li><b>Conformal</b>: 환자별 예측구간과 보장된 coverage.</li>
+    <li><b>DCA</b>: 재측정 100건당 막은 오분류 건수로 임상 효용 계산.</li>
+    <li><b>HFimpEF 접목</b>: ΔEF 10%p 기준이 잡음(ΔSD 10.5)보다 작다는 결과와 연결.</li>
+  </ul>
+  <p>수학(분산분해·신뢰도·ROC)은 <a href="measurement/">수학 노트</a>에 따로 정리했다.</p>
+</section>
 
-<h2><span class="num">09</span>수학은 따로 — msm 워크북</h2>
-
-<p>이 문서는 <b>결과와 계획</b>만 다뤘다. 행렬·속도·포아송 회귀·offset을 고3 수학 수준으로 처음부터
-설명한 문서를 따로 뒀다. 100명짜리 장난감 예시로 손계산하는 부분이 포함돼 있다.</p>
-
-<p style="margin:var(--s3) 0"><a href="./msm/" style="font-family:var(--font-mono);font-size:15px">
-→ msm 워크북: 전이확률은 어떻게 계산되나</a></p>
-
-<p>다루는 것: 상태를 벡터로 적기 · 1개월 = 행렬 한 번 · 12개월 = 12번 · 확률과 속도의 차이(exp) ·
-로그를 쓰는 이유 · 포아송 회귀와 offset · 우리 데이터 계수 읽기 · 검증과 함정 5개.</p>
-
+<section id="repro">
+  <h2><span class="num">07</span>재현</h2>
+  <div class="plain">
+    <span class="lbl">스크립트</span>
+    <code>src/pilot_reclass.py</code> → <code>results/pilot_reclass.json</code>, <code>figures/pilot_roc.png</code><br>
+    <code>src/build_hfimpef.py</code> → <code>results/hfimpef_pairs.csv</code><br>
+    <code>src/hfimpef_analysis.py</code> → <code>results/hfimpef.json</code>
+  </div>
+</section>
 <footer>
-<p>수치 출처: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
-환자 단위 데이터는 포함하지 않는다.</p>
-<p>생성 스크립트 <code>src/make_methods_site.py</code> · 결과 JSON
-<code>results/msm_core_set.json</code>, <code>results/crude_km.json</code></p>
+  <p>데이터: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
+  환자 단위 데이터는 공개하지 않는다 — 이 페이지에는 집계 통계만 있다.</p>
+  <p>생성: <code>src/make_site_reclass.py</code> · 수치: <code>results/pilot_reclass.json</code></p>
+  <p>27paper-echo · 2026-11-04</p>
 </footer>
 
 </div>
