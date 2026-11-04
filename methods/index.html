@@ -22,7 +22,7 @@
 </header>
 
 <div class="lede">
-  <p class="lede-title">네 줄 요약</p>
+  <p class="lede-title">다섯 줄 요약</p>
   <ol>
     <li><strong>군별 비교는 이미 나왔다.</strong> 약 시작군은 회복이 +4.8%p 높지만 사망도 +6.3%p 높다.
     원인은 약이 아니라 <strong>시작군이 더 아프고, 관측기간이 4배 짧다</strong>는 것.</li>
@@ -30,8 +30,12 @@
     <strong>589,824칸</strong>인데 환자는 4,554명이다 → 모든 확률이 0.250(균등)으로 나왔다.</li>
     <li><strong>정답은 모형 두 개가 아니라 하나.</strong> 잠재상태와 치료를 같은 우도 안에 넣는
     8상태 CT-HMM. 그러면 환자별 표도, 신뢰구간도 한 번에 나온다.</li>
+    <li><strong>지금 계산된 환자별 표는 아직 "개인"이 아니다.</strong> EF 밴드 2개 × 약 복용 2개로
+    <strong>모형을 4번 따로 적합</strong>했기 때문에, EF 42의 62세 당뇨환자와 EF 44의 80세 판막환자가
+    같은 숫자를 받는다. 개인 변수는 전이속도 함수 안에 들어가야 한다(§05).</li>
     <li><strong>파일럿 적합 결과:</strong> 공변량을 넣자 회복 이득 <strong>+9.6%p → −0.9%p</strong>로 사라졌다.
-    그 이득은 약효가 아니라 회귀평균이었다. 반면 사망 초과는 보정해도 남았다(HFmrEF→사망 HR 1.69).</li>
+    그 이득은 약효가 아니라 회귀평균이었다. 반면 사망 초과는 보정해도 남았다(HFmrEF→사망 HR 1.69).
+    즉 <strong>지금 자료가 말하는 답은 "이득을 못 찾았다"</strong>이고, 그 자체가 첫 논문의 결과다(§11).</li>
   </ol>
 </div>
 
@@ -72,6 +76,42 @@ EF 39가 다음에 43이 되는 것은 나아진 게 아니라 원래 그 자리
 <p>여기서 <strong>진행이 +5.4%p 늘어난 것</strong>이 이상하다. 약을 주면 나빠진다는 뜻이기 때문이다.
 이 글은 그 숫자가 왜 나왔는지, 어떻게 고쳐야 하는지를 다룬다.</p>
 
+<h3>이 글에서 답하려는 세 가지</h3>
+<table>
+<thead><tr><th>질문</th><th>산출물</th><th>현재 상태</th></tr></thead>
+<tbody>
+<tr><td><b>a.</b> 이 환자가 3·6·9·12개월에 HFrEF / HFmrEF / 정상 / 사망에 있을 확률</td>
+<td>환자 1명 → 4×4 전이행렬 → 시점별 확률표</td><td class="n">계산은 됨 · <b>개인화 축이 빠짐</b></td></tr>
+<tr><td><b>b.</b> 지금 약을 안 먹는 이 환자에게 약을 주면 그 표가 어떻게 바뀌나</td>
+<td>A=0 / A=1 두 번 계산한 표의 차이</td><td class="n"><b>시나리오 투영까지만</b> (인과 아님)</td></tr>
+<tr><td><b>c.</b> 그래서 약을 주는 것이 이득인가, 얼마나인가</td>
+<td>Δ(HFrEF 위험) + Δ(사망 위험), score 분위별 곡선</td><td class="n"><b>아직 답 없음</b> — 파일럿은 이득을 못 찾음</td></tr>
+</tbody>
+</table>
+
+<p>세 질문은 순서가 있다. <b>a가 개인화되지 않으면 b는 의미가 없고, b가 인과가 아니면 c는 계산할 수 없다.</b>
+지금 막힌 곳은 정확히 이 사슬의 세 군데다.</p>
+
+<div class="warnbox"><span class="lbl">막힌 곳 다섯 — 이 글의 목차</span>
+<b>① 개인화 축이 없다</b> — 표가 EF 밴드 × 약 여부 4개뿐 (§05)<br>
+<b>② 관측이 얇고 12개월은 외삽이다</b> — 재검 0회 24%, 추적 중앙 203일 (§02)<br>
+<b>③ 검사가 상태 때문에 시행된다</b> — 전이 속도와 검사 빈도가 섞임 (§02)<br>
+<b>④ 인과가 안 풀린다</b> — 보정하면 회복 이득이 사라지고 사망 신호만 남음 (§11)<br>
+<b>⑤ 외래에서 못 쓰는 변수가 핵심 변수다</b> — BNP 69%·E/e′ 89% 결측 (§06)
+</div>
+
+<h3>수학은 어디까지 왔나 — 고3 수준으로</h3>
+<p>상태가 4개이므로 전이확률은 <b>4×4 행렬</b> 하나로 표현된다. 지금 상태를 (정상, HFmrEF, HFrEF, 사망)
+비율로 적은 1×4 벡터라고 하면,</p>
+<ul>
+<li>1개월 뒤 = 지금 벡터 <b>× P</b></li>
+<li>12개월 뒤 = <b>P를 12번 곱한</b> P¹²</li>
+</ul>
+<p>이게 전부다. <code>cthmm_pilot.json</code>이 이 계산을 이미 끝내놓았다(3·6·9·12·24·36개월).
+그래서 <b>a는 "계산"이 아니라 "입력"이 문제</b>다. 환자 정보가 P 안에 안 들어가 있어서 개인화가 안 될 뿐이다.
+HMM은 여기에 한 가지만 더한다 — "우리가 보는 EF 42는 참값이 아니라 <b>노이즈 섞인 사진</b>"이라고 치고,
+참 상태를 확률로 되짚는 것. 적합 결과 판독 흔들림은 σ = 5.78%p로, 실측(중앙 |ΔEF| 5.0%p)과 맞았다.</p>
+
 <h2><span class="num">02</span>1차 시도 — 군별 비교의 네 가지 함정</h2>
 
 <p>landmark를 90일로 잡고, 그 전에 GDMT를 시작한 군(2,442명)과 아닌 군(2,112명)을 비교했다.
@@ -105,6 +145,19 @@ EF 39가 다음에 43이 되는 것은 나아진 게 아니라 원래 그 자리
 <div class="plain"><span class="lbl">쉽게 말하면</span>
 같은 12개월 확률을 계산하는데, 한 군은 6개월치 자료로, 다른 군은 2년치 자료로 계산하고 있다.
 사진을 4배 더 많이 찍은 쪽이 "많이 변했다"고 기록되는 건 당연하다.</div>
+
+<p>이건 군별 비교만의 문제가 아니다. <b>코호트 전체가 얇다.</b> 5,315명을 세어보면 이렇다.</p>
+<table>
+<thead><tr><th>index 이후 EF 재검 횟수</th><th class="n">환자 수</th><th class="n">비율</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td>0회</td><td class="n">1,288</td><td class="n">24.2%</td><td>상태 변화를 <b>한 번도 못 봄</b></td></tr>
+<tr><td>1회</td><td class="n">1,752</td><td class="n">33.0%</td><td>전이가 최대 1건</td></tr>
+<tr><td>2회 이상</td><td class="n">2,275</td><td class="n">42.8%</td><td>궤적을 볼 수 있음</td></tr>
+</tbody>
+</table>
+<p>추적기간 중앙값은 <b>203일</b>이고, 365일 이상 관측된 사람은 <b>2,018명(38.0%)</b>뿐이다.
+즉 12개월 확률표의 절반 이상은 모형이 <b>외삽</b>한 값이다. 이 사실은 결과표에 반드시 같이 적어야 하고,
+"전이 관측 1,168건"이라는 숫자가 신뢰구간을 넓히는 직접 원인이다.</p>
 
 <h3>함정 3 · 단위시간당 검사 밀도가 3배</h3>
 <p>심초음파 횟수는 4.12회 vs 4.69회로 비슷해 보이지만, 관측기간으로 나누면
@@ -195,6 +248,26 @@ EF 39가 다음에 43이 되는 것은 나아진 게 아니라 원래 그 자리
 <p>HFmrEF 잔류가 <strong>45.3% → 36.5%</strong>로 내려간다. 관측 라벨은 판독 흔들림을 "그대로 머문 것"으로
 세지만, 은닉상태 모형은 그 흔들림을 오차로 분리하기 때문이다.</p>
 
+<h3>실측 예측력 — 지금 score는 "결정용"이 아니다</h3>
+<p>평가 1번(처음 보는 환자 예측)을 실제로 돌린 결과가 <code>trajectory_hmm.json</code>에 있다.
+5겹 교차검증 AUC는 이렇다.</p>
+<table>
+<thead><tr><th>모형</th><th class="n">HFrEF 진행 AUC</th><th class="n">복합(진행+사망)</th></tr></thead>
+<tbody>
+<tr><td>기본 변수 11개</td><td class="n">0.619</td><td class="n">0.639</td></tr>
+<tr><td>+ 궤적 특징</td><td class="n">0.620</td><td class="n">0.641</td></tr>
+<tr><td>+ 궤적 + HMM 상태</td><td class="n">0.621</td><td class="n">0.642</td></tr>
+</tbody>
+</table>
+<p>HMM 상태를 넣어도 <b>0.619 → 0.621</b>로 사실상 변화가 없다. 그리고 0.62는 외래 결정에 쓰기에는
+낮다(참고로 일반적인 임상예측모형은 0.70~0.80을 목표로 한다). 원인은 세 가지다 — 사건이 드물고,
+예측변수가 약하고, <b>검사 간격이 불규칙</b>해서 "그 시점의 상태"를 라벨로 쓸 수 없기 때문이다.</p>
+
+<div class="warnbox"><span class="lbl">군집은 score가 아니다</span>
+<code>phenotype_score.json</code>의 GMM은 BIC 기준 k=6을 골랐지만 silhouette은 <b>0.12</b>
+(k=2에서도 0.22)로 낮다. 즉 환자를 <b>설명</b>하는 데는 쓸 수 있어도, <b>예후를 예측하는 score</b>로는
+쓸 수 없다. score는 별도로 만들지 말고 <b>전이모형이 뱉는 12개월 HFrEF 위험</b>을 그대로 쓰는 게 맞다(§05).</div>
+
 <h2><span class="num">05</span>제안 — 모형 하나로 끝내는 구조</h2>
 
 <figure>
@@ -209,6 +282,25 @@ q(i→j | X, A) = q₀(i→j) · exp(β(i→j)·X + γ(i→j)·A)
 </p>
 <p>이렇게 하면 <strong>치료를 0으로 두고 한 번, 1로 두고 한 번</strong> 계산해 차이를 내는 것이
 그대로 환자별 이득이 된다. 별도 인과모형이 필요 없다.</p>
+
+<h3>지금 계산된 표는 왜 "개인"이 아닌가</h3>
+<p>현재 <code>whatif_patient_table.py</code>는 <b>EF 40–44 / 45–49</b> × <b>약 복용 / 미복용</b>으로
+<b>모형을 네 번 따로 적합</b>하고, 각 칸에서 시작분포 (0,1,0,0)을 12번 굴린다. 환자 변수는 어디에도
+들어가지 않는다. 그래서 EF 42의 62세 당뇨환자와 EF 44의 80세 판막환자가 <b>같은 숫자</b>를 받는다.</p>
+<p>고치는 방법은 모형을 더 만드는 게 아니라 <b>P 안에 Z를 넣는 것</b>이다. 위 식에서 β가 개인화 축이고,
+γ가 치료 효과다. 이때 표는 사람마다 달라지고, 계산은 여전히 <b>행렬 곱 12번</b>으로 끝난다.</p>
+<div class="plain"><span class="lbl">행렬 곱이 12번이면 충분한 이유</span>
+상태가 4개이고 전이가 시간에 따라 일정하면, 12개월 확률은 P¹²로 <b>정확히</b> 나온다.
+환자를 10만 명 만들어 굴려도 같은 값에 수렴할 뿐이다(§10에서 실측 비교). 그래서 "가상 코호트"는
+<b>확률표를 만드는 도구가 아니라 불확실성 구간을 만드는 도구</b>다.</div>
+
+<h3>score는 모형의 출력을 그대로 쓴다</h3>
+<p>외래에서 쓸 단일 점수는 따로 만들지 않는다. 전이모형에 환자를 넣으면 <b>12개월 HFrEF 위험</b>이
+나오는데, 그것이 곧 score다. 이렇게 하면 "점수는 예후와 무관한데 약은 점수로 정한다"는 꼬임이
+생기지 않는다. score 상위군에서 Δ이 크고 하위군에서 작으면, 그게 목표 c(누구에게 이득이 큰가)의 답이 된다.</p>
+<p>점수 체계를 종이에 적는 용도로 단순화하려면, β를 <b>정수 점수</b>로 반올림한 표를 부록에 둔다
+(예: 나이 10세당 +1, EF 5%p당 −2, LVEDD 5 mm당 +1, eGFR 15당 +1). 회귀계수를 점수로 바꾸는 것은
+계산이 아니라 <b>표기법</b>이므로, 모형과 점수가 어긋나지 않게 같은 β에서 유도해야 한다.</p>
 
 <h3>적합은 EM 두 단계로</h3>
 <ol>
@@ -250,15 +342,73 @@ q(i→j | X, A) = q₀(i→j) · exp(β(i→j)·X + γ(i→j)·A)
 6개로 고정하고, 나머지는 다중상태 회귀에 계수로 넣는다.
 </div>
 
-<h2><span class="num">07</span>다음 단계</h2>
+<h3>외래용이라는 조건이 변수 선택을 바꾼다</h3>
+<p>"외래에서 lab·TTE 결과로 바로 쓸 수 있게"라는 목표는 통계가 아니라 <b>결측률</b>이 결정한다.
+실측 결측률을 보면 어떤 변수를 포기해야 하는지가 바로 나온다.</p>
+<table>
+<thead><tr><th>변수</th><th class="n">결측률</th><th>외래 사용</th></tr></thead>
+<tbody>
+<tr><td>EF (index)</td><td class="n">0%</td><td class="neg">가능</td></tr>
+<tr><td>LVEDD</td><td class="n">6.3%</td><td class="neg">가능</td></tr>
+<tr><td>중격·후벽 두께</td><td class="n">7.0%</td><td class="neg">가능</td></tr>
+<tr><td>크레아티닌 / eGFR(CKD-EPI)</td><td class="n">14.9%</td><td class="neg">가능</td></tr>
+<tr><td>나트륨 · 혈색소</td><td class="n">16.0 / 16.3%</td><td class="neg">가능</td></tr>
+<tr><td>TR velocity</td><td class="n">25.7%</td><td>조건부</td></tr>
+<tr><td>NT-proBNP</td><td class="n">68.6%</td><td class="pos">불가 — 대체 또는 다중대입</td></tr>
+<tr><td>LA volume</td><td class="n">75.8%</td><td class="pos">불가</td></tr>
+<tr><td>E/e′ (기록값)</td><td class="n">89.2%</td><td class="pos">불가</td></tr>
+<tr><td>TAPSE</td><td class="n">91.8%</td><td class="pos">불가</td></tr>
+</tbody>
+</table>
+<p>즉 "TTE에서 바로 쓰는 score"를 만들려면 <b>BNP·E/e′·TAPSE를 빼고</b> EF·LVEDD·벽두께·Cr·Na·Hb로
+버전을 만들어야 한다. BNP 포함 모형과 제외 모형의 성능 차이를 <b>둘 다 보고</b>하는 것이
+"외래에서 쓸 수 있는가"에 대한 정직한 답이다.</p>
+<div class="plain"><span class="lbl">주의 — 결측은 무작위가 아니다</span>
+BNP는 <b>의심될 때</b> 재므로, BNP가 있는 사람과 없는 사람은 원래 다르다. 결측 자체가 중증도의
+신호일 수 있어서, 단순히 빼거나 평균으로 채우면 편향이 생긴다. 다중대입 + MNAR 민감도 분석이 필요하다.</div>
+
+<h2><span class="num">07</span>다음 단계 — a·b·c를 순서대로</h2>
+
+<p>세 질문은 동시에 풀리지 않는다. 앞 단계가 틀리면 뒤가 무의미해지므로 순서를 고정한다.</p>
+
+<table>
+<thead><tr><th>단계</th><th>하는 일</th><th>끝나면 답이 나오는 것</th></tr></thead>
+<tbody>
+<tr><td><b>0</b> (완료)</td><td>상태 4개 정의 + EF 측정오차 모형(σ = 5.78)</td><td>P¹²로 12개월 확률이 계산됨</td></tr>
+<tr><td><b>1</b> (지금)</td><td>전이강도에 공변량을 넣어 <b>개인화</b>: q(i→j | Z, A)</td><td><b>목표 a</b> — 환자 1명 → 3·6·9·12개월 표</td></tr>
+<tr><td><b>2</b></td><td>같은 모형에서 A=1 / A=0 두 번 계산 (g-formula)</td><td><b>목표 b</b> — 두 표와 그 차이</td></tr>
+<tr><td><b>3</b></td><td>Δ(HFrEF 위험) + Δ(사망 위험)을 이득으로 정의</td><td><b>목표 c</b> — 이득의 크기와 방향</td></tr>
+<tr><td><b>4</b></td><td>score = 모형의 12개월 HFrEF 위험 → 분위별 Δ 곡선</td><td>누구에게 이득이 큰가</td></tr>
+<tr><td><b>5</b></td><td>시간 분할 검증 · 보정곡선 · decision curve</td><td>외래에서 써도 되는가</td></tr>
+</tbody>
+</table>
+
+<h3>1단계에서 실제로 할 일</h3>
 <ol>
 <li><strong>8상태 CT-HMM 적합</strong> — 4 임상 × 2 치료, q(i→j|X,A)에 공변량</li>
 <li><strong>EM + Poisson M단계</strong> 구현 (기존 코드에서 offset·표준화만 고치면 됨)</li>
+<li><strong>외래용 / BNP포함 두 버전</strong>을 따로 적합해 성능 차이를 비교</li>
 <li><strong>평가</strong> — 처음 보는 환자 예측, 가짜 환자와 비교, 확률 보정, 정답 복구</li>
-<li><strong>반사실 계산</strong> — A=0/A=1 두 번 계산해 환자별 Δ표</li>
 <li><strong>중도절단 보정</strong> — IPCW로 365일 지평 유지</li>
 <li><strong>베이즈망은 6노드 그림으로만</strong> — 인과 구조 설명용</li>
 </ol>
+
+<h3>b·c를 정직하게 만드는 세 장치</h3>
+<p>이 세 개가 없으면 심사에서 먼저 지적된다. 그리고 셋 다 <b>지금 데이터로 바로 가능</b>하다.</p>
+<ol>
+<li><strong>신규 시작 vs 기존 유지로 층화</strong> — 이미 약을 먹던 안정 외래환자에서 사망 HR이 1에
+가까워지면, 남은 신호는 약이 아니라 <b>"시작 시점의 급성악화"</b>라는 가설이 지지된다.</li>
+<li><strong>Negative control outcome</strong> — 약과 무관해야 하는 결과(골절·백내장)에서도 신호가 나오면
+그것은 교란의 증거다.</li>
+<li><strong>E-value 병기</strong> — "이 이득이 사라지려면 관측 못한 변수가 양쪽에 RR 3.2로 붙어야 한다"까지
+같이 써야 반박이 막힌다.</li>
+</ol>
+
+<div class="warnbox"><span class="lbl">지금 상태에서 말할 수 있는 문장</span>
+"<b>3·6·9·12개월 확률표는 만들 수 있다. 단 아직 개인이 아니라 EF 밴드와 약 여부로 나눈 네 가지 표다.
+약을 주는 것의 이득은 이 자료로는 확인되지 않았다</b>(회복 이득은 보정 시 소멸, 사망 신호는 잔여교란
+가능성)." — 여기까지가 정직한 현재 위치다.
+</div>
 
 
 <h2><span class="num">08</span>교란을 지우는 세 단계</h2>
@@ -437,6 +587,23 @@ $$w(t)=\prod_{k\le t}\frac{P(A_k\mid \bar A_{k-1})}{P(A_k\mid \bar A_{k-1},\bar 
 
 <p>차이 0.002는 시뮬레이션 오차임. <b>계산이 되는데 시뮬레이션을 돌리면 시간만 쓰고 오차만 늘어남.</b></p>
 
+<h3>용어 정리 — "가상 코호트"는 MCMC가 아님</h3>
+<p>세 가지가 자주 섞이는데, 하는 일이 다름.</p>
+<table>
+<thead><tr><th>이름</th><th>확률을 아는가</th><th>하는 일</th><th>우리에게</th></tr></thead>
+<tbody>
+<tr><td><b>몬테카를로</b></td><td>암</td><td>알려진 확률로 환자를 굴려 미래를 센다</td><td>가상 코호트 = 이것. 다만 4상태면 정확 계산으로 대체됨</td></tr>
+<tr><td><b>MCMC</b></td><td>모름</td><td>확률 자체를 사후분포로 추정한다</td><td>환자마다 다른 약 반응·정보성 검사에서만 필요</td></tr>
+<tr><td><b>부트스트랩</b></td><td>암</td><td>환자를 다시 뽑아 답의 흔들림을 잰다</td><td>신뢰구간 — 지금 쓰는 방법</td></tr>
+</tbody>
+</table>
+<p>즉 "현재 환자와 비슷한 가상 환자를 많이 만든다"는 발상은 <b>몬테카를로</b>가 맞고, 이때 확률은
+이미 전이행렬에서 나옴. 그래서 만든 가상 환자들이 하는 일은 <b>확률표를 만드는 것</b>이 아니라
+<b>그 표가 얼마나 흔들리는지 보는 것</b>임. 표 자체는 P¹² 한 번이면 끝남.</p>
+<div class="plain"><span class="lbl">MCMC가 정말 필요해지는 순간</span>
+① 환자마다 약 반응이 다르다(random effect) ② 검사가 상태 때문에 시행된다(관측모형)
+③ 파라미터 불확실성을 신뢰구간이 아니라 <b>사후분포</b>로 보고 싶다. 이 셋 중 하나면 MCMC로 감.</div>
+
 <table>
 <thead><tr><th>무엇을 구할 때</th><th>방법</th></tr></thead>
 <tbody>
@@ -524,12 +691,31 @@ HFmrEF에서 GDMT 시작과 12개월 회복의 연관성은 기저 EF·좌심실
 분리한 민감도 분석으로 검증할 수 있다.
 </blockquote>
 
+<h3>이 파일럿을 논문으로 바꾸는 순서</h3>
+<p>지금 결과는 실패가 아니라 <b>논문 1편</b>임. 순서를 바꾸면 a·b·c가 안 풀리므로 이렇게 감.</p>
+<table>
+<thead><tr><th>편</th><th>질문</th><th>지금 상태</th></tr></thead>
+<tbody>
+<tr><td><b>1편</b></td><td>"HFmrEF에서 GDMT 시작과 12개월 회복의 연관성은 보정하면 사라진다.
+사망 신호는 남는다" — 위 인용문이 그대로 초록이 됨</td><td class="neg">결과·해석 완료</td></tr>
+<tr><td><b>2편</b></td><td>개인화 다중상태 모형 + 12개월 확률표 + score (목표 a)</td><td>모형 설계 완료, 적합 남음</td></tr>
+<tr><td><b>3편</b></td><td>약 시작의 반사실 이득과 score별 이득 곡선 (목표 b·c)</td><td>1·2편 검증 통과 후</td></tr>
+</tbody>
+</table>
+<p>1편을 먼저 내는 이유는 두 가지임. ① 지금 자료로 <b>이미 답이 나온 유일한 질문</b>이고,
+② "왜 기존 관찰연구가 엇갈렸는지"를 설명하는 재료가 되기 때문임. 2·3편은 1편의 심사 지적
+(잔여교란·시간가변 교란)을 정면으로 다루는 후속이 되어 서사가 이어짐.</p>
+<div class="plain"><span class="lbl">지금 당장 손대지 말 것</span>
+ARNI vs ACEi 같은 active comparator(신규 시작 17명뿐), 용량 반응 분석(<code>gdmt_full4_at_index</code>
+전원 0, 용량 정보 없음), 사후 BNP를 주결과로 쓰는 것(측정률 20%). 셋 다 데이터가 거부함.</div>
+
 
 <footer>
 <p>수치 출처: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
 환자 단위 데이터는 포함하지 않는다.</p>
 <p>생성 스크립트 <code>src/make_methods_site.py</code> · 결과 JSON <code>results/whatif_multistate.json</code>,
-<code>results/bn_whatif.json</code>, <code>results/cthmm_pilot.json</code>, <code>results/msm_poisson_pilot.json</code>, <code>results/msm_adjust_ladder.json</code></p>
+<code>results/bn_whatif.json</code>, <code>results/cthmm_pilot.json</code>, <code>results/msm_poisson_pilot.json</code>, <code>results/msm_adjust_ladder.json</code>,
+<code>results/whatif_patient_table.json</code>, <code>results/trajectory_hmm.json</code>, <code>results/phenotype_score.json</code></p>
 </footer>
 
 </div>
