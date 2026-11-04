@@ -25,6 +25,14 @@ code{font-family:var(--font-mono);font-size:.88em;background:var(--surface-2);pa
 .note{border-left:2px solid var(--rule-strong);padding-left:var(--s3);color:var(--ink-2);font-size:.95rem;margin:var(--s3) 0}
 .plain{background:var(--surface-1);padding:var(--s3);margin:var(--s3) 0}
 .plain .lbl{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-strong);margin-bottom:6px}
+.mathbox{background:var(--surface-1);border-left:4px solid var(--accent);padding:var(--s2) var(--s3);margin:var(--s3) 0}
+.mathbox .lbl{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-strong);margin-bottom:4px}
+.mathbox .read{display:block;font-size:.92rem;color:var(--ink-2);margin-top:2px;line-height:1.7}
+.gloss{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);margin:var(--s3) 0 var(--s5)}
+.gloss div{background:var(--surface-1);padding:var(--s2) var(--s3)}
+.gloss>div>b{display:block;font-size:.9rem;color:var(--accent-strong);margin-bottom:3px}
+.gloss span b{color:var(--ink-1);font-weight:600}
+.gloss span{font-size:.9rem;color:var(--ink-2);line-height:1.65}
 .warnbox{background:var(--warn-soft);border-left:4px solid var(--warn);padding:var(--s3);margin:var(--s3) 0}
 .warnbox .lbl{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--warn);margin-bottom:6px}
 figure{margin:var(--s4) 0 var(--s5)}
@@ -39,7 +47,7 @@ td.n,th.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tab
 .card{background:var(--card);border:1px solid var(--rule);padding:var(--s3);margin:var(--s3) 0}
 .card .card-title{margin:0 0 var(--s2);font-size:.95rem;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
-@media(max-width:720px){.grid2{grid-template-columns:1fr}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}th,td{padding:6px 5px;font-size:.78rem}td.n,th.n{white-space:normal}}
+@media(max-width:720px){.grid2,.gloss{grid-template-columns:1fr}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}th,td{padding:6px 5px;font-size:.78rem}td.n,th.n{white-space:normal}}
 .pill{display:inline-block;font-family:var(--font-mono);font-size:11px;padding:2px 8px;border:1px solid var(--rule-strong);color:var(--ink-2);margin-right:6px}
 .pill.bad{border-color:var(--bad);color:var(--bad)}
 .pill.ok{border-color:var(--ok);color:var(--ok)}

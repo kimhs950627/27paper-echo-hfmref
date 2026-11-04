@@ -35,6 +35,23 @@
   </ol>
 </div>
 
+<h2><span class="num">00</span>먼저, 용어 여섯 개</h2>
+<p>이 문서에 나오는 말은 여섯 개면 다 됨. 나머지는 이 여섯 개의 조합임.</p>
+<div class="gloss">
+<div><b>교란 (confounding)</b><span>약을 받은 사람과 안 받은 사람이 <b>원래부터 다른 것</b>.
+그래서 결과 차이가 약 때문인지 원래 차이인지 구별이 안 됨.</span></div>
+<div><b>회귀평균</b><span>아주 낮게(또는 높게) 나온 값은 <b>다음에 평균 쪽으로 돌아오는</b> 현상.
+EF 39가 다음에 43이 되는 것은 나아진 게 아니라 원래 그 자리였을 수 있음.</span></div>
+<div><b>관측 편향</b><span>검사를 자주 한 사람이 <b>더 많이 변한 것처럼 기록되는</b> 것.
+실제 변화량은 같은데 사진 수가 다른 경우.</span></div>
+<div><b>잠재상태 (latent state)</b><span>환자의 <b>진짜 상태</b>. 우리가 보는 EF는 그 상태의 흐릿한 사진이라
+한 장으로는 확정할 수 없음.</span></div>
+<div><b>g-formula</b><span>"모두에게 약을 준다" 같은 처방을 <b>정해놓고</b> 환자를 한 달씩 굴려
+12개월 뒤를 세는 계산. 관찰자료로 가상의 임상시험을 흉내내는 방법.</span></div>
+<div><b>부트스트랩 / MCMC</b><span>답이 얼마나 흔들리는지 보는 두 방법. 부트스트랩은 <b>환자를 다시 뽑아
+재계산</b>, MCMC는 <b>계산으로 안 풀릴 때 반복 샘플링</b>.</span></div>
+</div>
+
 <h2><span class="num">01</span>우리가 하려는 것</h2>
 
 <p class="lead">목표는 이 한 줄이다. <strong>"이 환자에게 약을 시작하면 12개월 회복 확률이 몇 %p 오르는가."</strong></p>
@@ -147,23 +164,23 @@
 베이즈망은 "같은 조합을 가진 사람이 몇 명 있었나"를 세는 방식이라, 조합이 세분화될수록
 셀 사람이 사라진다. 회귀모형은 변수를 더해도 계수만 늘어나지만, 확률표는 칸이 곱으로 늘어난다.</div>
 
-<h2><span class="num">04</span>HMM의 정확성은 어떻게 재는가</h2>
+<h2><span class="num">04</span>이 모형을 어떻게 평가하나</h2>
 
 <p>잠재상태는 아무도 못 봤기 때문에 AUC를 계산할 수 없다. 대신 네 가지로 평가한다.</p>
 
-<div class="card"><p class="card-title">1. 홀드아웃 예측우도</p>
+<div class="card"><p class="card-title">1. 처음 보는 환자를 얼마나 잘 맞히나</p>
 <p style="margin:0">학습에 쓰지 않은 환자의 EF 시계열에 대해 모형이 매긴 확률. 잠재상태 모형의
 표준 지표이고, 모형 간 비교가 가능하다.</p></div>
 
-<div class="card"><p class="card-title">2. 사후예측검사</p>
+<div class="card"><p class="card-title">2. 모형이 만든 가짜 환자가 실제와 닮았나</p>
 <p style="margin:0">적합된 모형에서 가상 환자를 시뮬레이션해 EF 분포·검사 간격 분포가 실제와
 같은지 본다. 적합 결과 <b>σ = 5.78</b>로, 실측 판독 흔들림(중앙 |ΔEF| 5.0%p)과 일치했다.</p></div>
 
-<div class="card"><p class="card-title">3. 상태확률 캘리브레이션</p>
+<div class="card"><p class="card-title">3. "20% 확률"이라고 한 사람이 실제로 20%였나</p>
 <p style="margin:0">"12개월에 HFrEF일 확률 0.20"이라고 한 환자들을 모아 실제 비율이 0.20인지
 확인한다. Brier score와 보정곡선으로 보고한다.</p></div>
 
-<div class="card"><p class="card-title">4. 모수 복구 시뮬레이션</p>
+<div class="card"><p class="card-title">4. 정답을 아는 가짜 데이터로 추정이 맞는지</p>
 <p style="margin:0">Q를 알려진 값으로 정해 데이터를 만든 뒤 다시 추정해 편향을 확인한다.
 추정기가 제대로 작동하는지를 검증하는 단계.</p></div>
 
@@ -237,91 +254,98 @@ q(i→j | X, A) = q₀(i→j) · exp(β(i→j)·X + γ(i→j)·A)
 <ol>
 <li><strong>8상태 CT-HMM 적합</strong> — 4 임상 × 2 치료, q(i→j|X,A)에 공변량</li>
 <li><strong>EM + Poisson M단계</strong> 구현 (기존 코드에서 offset·표준화만 고치면 됨)</li>
-<li><strong>평가</strong> — 홀드아웃 로그우도, 사후예측, 캘리브레이션, 모수 복구</li>
+<li><strong>평가</strong> — 처음 보는 환자 예측, 가짜 환자와 비교, 확률 보정, 정답 복구</li>
 <li><strong>반사실 계산</strong> — A=0/A=1 두 번 계산해 환자별 Δ표</li>
 <li><strong>중도절단 보정</strong> — IPCW로 365일 지평 유지</li>
 <li><strong>베이즈망은 6노드 그림으로만</strong> — 인과 구조 설명용</li>
 </ol>
 
 
-<h2><span class="num">08</span>교란은 어디까지 상쇄되는가 — 수식</h2>
+<h2><span class="num">08</span>교란을 지우는 세 단계</h2>
 
-<p>교란은 하나가 아니다. 최소 세 가지가 섞여 있고, 각각을 흡수하는 장치가 다르다.</p>
+<p class="lead">임상 질문은 하나임. <b>"같은 환자에게 약을 줬다면 어땠을까."</b>
+문제는 세 가지가 한꺼번에 섞여 있다는 것.</p>
 
 <table>
-<thead><tr><th>교란원</th><th>무엇이 흡수하나</th><th>이번 파일럿에서</th></tr></thead>
+<thead><tr><th>걸림돌</th><th>임상 장면</th><th>모형이 하는 일</th><th>결과</th></tr></thead>
 <tbody>
-<tr><td>측정오차 · 회귀평균</td><td>방출모형 + 잠재상태</td><td>부분적으로</td></tr>
-<tr><td>차등 관측밀도</td><td>연속시간 우도 (+ 관측강도 모형)</td><td>부분적으로</td></tr>
-<tr><td>중증도 교란</td><td>강도에 공변량 Z 투입</td><td>측정된 것만</td></tr>
+<tr><td>① 판독 흔들림</td><td>EF 39가 한 번 나옴</td><td>그 값을 확률로 다룸</td><td class="neg">회복 이득 대부분 설명됨</td></tr>
+<tr><td>② 검사 간격</td><td>병동 46일 vs 외래 169일</td><td>횟수가 아니라 시간으로 셈</td><td class="neg">"모든 전이 빠름"의 일부 설명</td></tr>
+<tr><td>③ 아픈 정도</td><td>BNP 4,523 vs 2,769</td><td>조건 맞춰 비교</td><td class="pos">사망 신호는 못 지움</td></tr>
 </tbody>
 </table>
 
-<h3>모형</h3>
-<p>환자 $i$의 잠재 상태를 $S(t)\in\{0,1,2,3\}$ (정상·HFmrEF·HFrEF·사망)라 하고,
-공변량 $Z$, 치료 $A$에 대해 전이강도를 이렇게 둔다.</p>
+<h3>① 한 번 찍은 EF를 그 값으로 믿지 않는다</h3>
 
-$$q_{ij}(t \mid Z, A)=q_{ij}^{0}\,\exp\!\big(\beta_{ij}^{\top} Z+\gamma_{ij} A\big)$$
-<p style="text-align:center;margin-top:-8px;color:var(--ink-3);font-size:.9rem">$i\neq j$, $i,j\in\{0,1,2,3\}$</p>
+<p><b>임상 장면.</b> 열이 38.0으로 한 번 찍혔다고 차트에 "발열"이라고 쓰지 않음. 다음 날 36.8이면
+기계 오차였던 것. EF도 같음 — 판독 흔들림이 ±6%p쯤 됨(실측 σ = 5.78).</p>
 
-<p>생성행렬 $Q$의 대각은 음의 총 이탈률, 사망행은 흡수상태다.</p>
-
-$$Q_{ii}=-\sum_{j\neq i}q_{ij},\qquad Q_{33}=0$$
-$$P(t\mid Z,A)=\exp(Qt)=\sum_{k=0}^{\infty}\frac{(Qt)^{k}}{k!}$$
-
-<p>관측 EF는 잠재상태의 잡음 섞인 신호로 본다. 이 항이 <b>회귀평균을 흡수하는 부분</b>이다.</p>
-
-$$y_m \mid S(t_m)=s \;\sim\; \mathcal{N}(\mu_s,\ \sigma^{2})$$
-
-<p>여기서 $F_{\mathbf{s}}=\prod_m f(y_m\mid s_m)$는 방출항이다. 관측자료 우도는 잠재경로를 모두 더한 값이다. 시점 간격 $\Delta_m$이 사람마다 달라도
-$\exp(Q\Delta_m)$이 그 간격을 정확히 반영하므로, <b>검사 횟수가 적다고 전이를 놓친 것으로 세지 않는다.</b></p>
-
-$$\mathcal{L}(\theta)=\sum_{\mathbf{s}}\pi(s_0)\,P_{\mathbf{s}}\,F_{\mathbf{s}}$$
-$$P_{\mathbf{s}}=\prod_{m\lt M}\big(e^{Q\Delta_m}\big)_{s_m s_{m+1}}$$
-
-<div class="plain"><span class="lbl">쉽게 말하면</span>
-기존 방식은 "찍힌 게 바뀌었으면 전이"라고 셌다. 이 우도는 "그 사이에 실제로 얼마나 자주
-바뀌었을지"를 적분해서 센다. 사진을 덜 찍은 사람이 전이가 적은 게 아니라,
-<b>적게 찍혀서 안 보인 것</b>으로 취급한다.</div>
-
-<h3>왜 관측 라벨을 그냥 세면 편향되는가</h3>
-<p>2상태 근사에서 간격 $\Delta$ 안에 전이가 홀수 번 일어날 확률, 즉 "바뀐 것으로 보일" 확률은</p>
-
-$$p_{\text{det}}(\Delta)=\frac{1-e^{-2q\Delta}}{2}$$
-
-<p>이다. 이를 일당으로 나누면 간격이 길수록 <b>단위시간당 검출량이 줄어든다.</b>
-우리 전이강도 $q\approx0.0029$/일을 넣으면 이렇게 된다.</p>
-
-<figure>
-<svg viewBox="0 0 880 290" role="img" aria-label="관측 간격과 전이 검출률"><polyline points="126.3,50.9 132.4,52.7 138.4,54.5 144.4,56.2 150.5,57.9 156.5,59.6 162.5,61.3 168.6,62.9 174.6,64.5 180.6,66.1 186.7,67.7 192.7,69.2 198.8,70.8 204.8,72.3 210.8,73.8 216.9,75.2 222.9,76.7 228.9,78.1 235.0,79.5 241.0,80.9 247.1,82.3 253.1,83.6 259.1,84.9 265.2,86.3 271.2,87.6 277.2,88.8 283.3,90.1 289.3,91.3 295.3,92.6 301.4,93.8 307.4,95.0 313.5,96.1 319.5,97.3 325.5,98.5 331.6,99.6 337.6,100.7 343.6,101.8 349.7,102.9 355.7,104.0 361.8,105.0 367.8,106.1 373.8,107.1 379.9,108.1 385.9,109.1 391.9,110.1 398.0,111.1 404.0,112.1 410.0,113.0 416.1,114.0 422.1,114.9 428.2,115.8 434.2,116.7 440.2,117.6 446.3,118.5 452.3,119.4 458.3,120.2 464.4,121.1 470.4,121.9 476.5,122.7 482.5,123.6 488.5,124.4 494.6,125.2 500.6,125.9 506.6,126.7 512.7,127.5 518.7,128.3 524.7,129.0 530.8,129.7 536.8,130.5 542.9,131.2 548.9,131.9 554.9,132.6 561.0,133.3 567.0,134.0 573.0,134.7 579.1,135.3 585.1,136.0 591.2,136.7 597.2,137.3 603.2,137.9 609.3,138.6 615.3,139.2 621.3,139.8 627.4,140.4 633.4,141.0 639.4,141.6 645.5,142.2 651.5,142.8 657.6,143.4 663.6,143.9 669.6,144.5 675.7,145.1 681.7,145.6 687.7,146.1 693.8,146.7 699.8,147.2 705.9,147.7 711.9,148.2 717.9,148.8 724.0,149.3 730.0,149.8" fill="none" stroke="#A16207" stroke-width="2.2"/><circle cx="185.1" cy="67.3" r="4.5" fill="#101828"/><text x="185.1" y="55.3" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="middle">46일</text><text x="185.1" y="85.3" font-size="10.5" font-family="monospace" fill="#A16207" text-anchor="middle">2.55</text><circle cx="385.7" cy="109.1" r="4.5" fill="#101828"/><text x="385.7" y="97.1" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="middle">169일</text><text x="385.7" y="127.1" font-size="10.5" font-family="monospace" fill="#A16207" text-anchor="middle">1.85</text><circle cx="705.5" cy="147.7" r="4.5" fill="#101828"/><text x="705.5" y="117.7" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="middle">365일</text><text x="705.5" y="165.7" font-size="10.5" font-family="monospace" fill="#A16207" text-anchor="middle">1.20</text><line x1="110" y1="220" x2="730" y2="220" stroke="#B9B09B"/><line x1="110" y1="40" x2="110" y2="220" stroke="#B9B09B"/><text x="110.0" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text><text x="256.8" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">90</text><text x="403.7" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">180</text><text x="550.5" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">270</text><text x="705.5" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">365</text><text x="420.0" y="260" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">관측 간격 (일)</text><text x="110" y="24" font-size="11" font-family="monospace" fill="#5D5E63">일당 전이 검출 (×1000)</text></svg>
-<figcaption><b>그림 6.</b> 관측 간격에 따른 일당 전이 검출량. 46일 간격(시작군)은 169일 간격(미시작군)보다
-<b>1.38배</b>, 365일 간격보다 <b>2.11배</b> 많이 검출한다. 약이 없어도 생기는 차이다.</figcaption>
-</figure>
-
-<h3>회귀평균은 방출모형이 흡수한다</h3>
-<p>$\sigma=5.78$ (실측 판독 흔들림), $\mu=(56.7,\ 43.2,\ 28.1)$일 때, EF 39를 한 번 본 경우와
-두 번 본 경우의 사후확률은 이렇게 갈린다.</p>
+<p><b>그래서.</b> EF 39를 "HFrEF"라는 사실로 저장하지 않고, "HFrEF일 확률 5.9%, HFmrEF일 확률 94%"로
+저장함. 이렇게 하면 한 번의 튐이 전이로 세어지지 않음.</p>
 
 <figure>
 <svg viewBox="0 0 880 240" role="img" aria-label="한 번 측정과 두 번 측정의 상태 판정 차이"><text x="8" y="41" font-size="11.5" fill="#101828">EF 39 한 번</text><rect x="230" y="25" width="135.7" height="22" fill="#9B2C2C"/><text x="374.7" y="41" font-size="11" font-family="monospace" fill="#51555D">5.9%</text><text x="8" y="87" font-size="11.5" fill="#101828">EF 39, 40 두 번</text><rect x="230" y="71" width="20.7" height="22" fill="#A16207"/><text x="259.7" y="87" font-size="11" font-family="monospace" fill="#51555D">0.9%</text><text x="8" y="133" font-size="11.5" fill="#101828">EF 49 한 번 → 정상</text><rect x="230" y="117" width="204.7" height="22" fill="#9B2C2C"/><text x="443.7" y="133" font-size="11" font-family="monospace" fill="#51555D">8.9%</text><text x="8" y="179" font-size="11.5" fill="#101828">EF 49, 52 두 번 → 정상</text><rect x="230" y="163" width="418.6" height="22" fill="#A16207"/><text x="657.6" y="179" font-size="11" font-family="monospace" fill="#51555D">18.2%</text><line x1="230" y1="20" x2="230" y2="208" stroke="#101828"/></svg>
-<figcaption><b>그림 7.</b> 한 번 측정과 두 번 측정의 판정 차이. EF 39 한 번이면 HFrEF일 확률을
-<b>5.9%</b>로 보지만, 39·40 두 번이면 <b>0.9%</b>로 떨어진다. 한 번 찍고 "진행"이라 부르던 라벨이
-얼마나 불안정한지 보여준다.</figcaption>
+<figcaption><b>그림 6.</b> 한 번 측정과 두 번 측정. EF 39 한 번이면 HFrEF일 확률을 <b>5.9%</b>로 보지만,
+39·40 두 번이면 <b>0.9%</b>로 떨어짐. 한 번 찍고 "진행"이라 부르던 라벨이 얼마나 불안정한지 보여줌.</figcaption>
 </figure>
 
-<h2><span class="num">09</span>실제로 얼마나 상쇄되나 — 파일럿 적합</h2>
+<div class="mathbox"><span class="lbl">수식으로는</span>
+$$y_m \mid S(t_m)=s \;\sim\; \mathcal{N}(\mu_s,\ \sigma^{2})$$
+<span class="read">읽는 법 — 관측 EF($y$)는 진짜 상태($s$)에 잡음을 더한 값. 평균은 정상 57, HFmrEF 43,
+HFrEF 28이고 흔들림은 5.8. 즉 <b>39라는 숫자 하나만으로는 상태를 확정할 수 없다.</b></span></div>
 
-<p>전체 5,315명 중 <b>1,600명</b>을 무작위로 뽑아(구간 보유 488명, 관측 구간 1,168건)
-공변량 $\beta$와 치료 $\gamma$를 함께 적합했다. 공변량은 EF·LVEDD·log BNP·재원일수·나이.</p>
+<h3>② 검사 횟수가 "전이"를 만든다</h3>
+
+<p><b>임상 장면.</b> 같은 환자를 2주마다 보는 병동과 6개월마다 보는 외래. 병동 환자가 더 많이
+"변한 것처럼" 기록됨. 실제로 변한 게 아니라 <b>본 횟수가 다른 것</b>임.</p>
+
+<p><b>그래서.</b> "몇 번 바뀌었나"를 세지 않고, <b>"얼마 동안 그 상태에 있었나"</b>로 계산함.
+사진 8장과 2장으로 속도를 비교할 때 사진 수가 아니라 시간으로 나누는 것과 같음.</p>
 
 <figure>
-<svg viewBox="0 0 880 300" role="img" aria-label="비보정과 보정 후 치료 효과 비교"><rect x="440.0" y="32" width="100.7" height="16" fill="#9B2C2C" opacity="0.9"/><text x="548.7" y="44" font-size="11" font-family="monospace" fill="#51555D" text-anchor="start">+9.6</text><rect x="224.0" y="54" width="216.0" height="16" fill="#9B2C2C" opacity="0.9"/><text x="216.0" y="66" font-size="11" font-family="monospace" fill="#51555D" text-anchor="end">-20.7</text><rect x="440.0" y="76" width="86.3" height="16" fill="#9B2C2C" opacity="0.9"/><text x="534.3" y="88" font-size="11" font-family="monospace" fill="#51555D" text-anchor="start">+8.3</text><rect x="440.0" y="98" width="29.1" height="16" fill="#9B2C2C" opacity="0.9"/><text x="477.1" y="110" font-size="11" font-family="monospace" fill="#51555D" text-anchor="start">+2.8</text><text x="210" y="26" font-size="11.5" font-family="monospace" fill="#9B2C2C">비보정 (naive)</text><rect x="430.4" y="152" width="9.6" height="16" fill="#A16207" opacity="0.9"/><text x="422.4" y="164" font-size="11" font-family="monospace" fill="#51555D" text-anchor="end">-0.9</text><rect x="386.3" y="174" width="53.7" height="16" fill="#A16207" opacity="0.9"/><text x="378.3" y="186" font-size="11" font-family="monospace" fill="#51555D" text-anchor="end">-5.1</text><rect x="440.0" y="196" width="10.0" height="16" fill="#A16207" opacity="0.9"/><text x="458.0" y="208" font-size="11" font-family="monospace" fill="#51555D" text-anchor="start">+1.0</text><rect x="440.0" y="218" width="53.4" height="16" fill="#A16207" opacity="0.9"/><text x="501.4" y="230" font-size="11" font-family="monospace" fill="#51555D" text-anchor="start">+5.1</text><text x="210" y="146" font-size="11.5" font-family="monospace" fill="#A16207">공변량 보정</text><line x1="440.0" y1="24" x2="440.0" y2="262" stroke="#101828" stroke-width="1.2"/><text x="440.0" y="282" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text><text x="670.0" y="282" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">+22%p</text><text x="210.0" y="282" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">−22%p</text></svg>
-<figcaption><b>그림 8.</b> 같은 자료에서 비보정 차이(빨강)와 공변량 보정 후 차이(호박). 회복 이득
-<b>+9.6%p</b>가 <b>−0.9%p</b>로 사라지고, 사망 차이는 <b>+2.8%p</b>에서 <b>+5.1%p</b>로 오히려 커진다.</figcaption>
+<svg viewBox="0 0 880 290" role="img" aria-label="관측 간격과 전이 검출률"><polyline points="126.3,50.9 132.4,52.7 138.4,54.5 144.4,56.2 150.5,57.9 156.5,59.6 162.5,61.3 168.6,62.9 174.6,64.5 180.6,66.1 186.7,67.7 192.7,69.2 198.8,70.8 204.8,72.3 210.8,73.8 216.9,75.2 222.9,76.7 228.9,78.1 235.0,79.5 241.0,80.9 247.1,82.3 253.1,83.6 259.1,84.9 265.2,86.3 271.2,87.6 277.2,88.8 283.3,90.1 289.3,91.3 295.3,92.6 301.4,93.8 307.4,95.0 313.5,96.1 319.5,97.3 325.5,98.5 331.6,99.6 337.6,100.7 343.6,101.8 349.7,102.9 355.7,104.0 361.8,105.0 367.8,106.1 373.8,107.1 379.9,108.1 385.9,109.1 391.9,110.1 398.0,111.1 404.0,112.1 410.0,113.0 416.1,114.0 422.1,114.9 428.2,115.8 434.2,116.7 440.2,117.6 446.3,118.5 452.3,119.4 458.3,120.2 464.4,121.1 470.4,121.9 476.5,122.7 482.5,123.6 488.5,124.4 494.6,125.2 500.6,125.9 506.6,126.7 512.7,127.5 518.7,128.3 524.7,129.0 530.8,129.7 536.8,130.5 542.9,131.2 548.9,131.9 554.9,132.6 561.0,133.3 567.0,134.0 573.0,134.7 579.1,135.3 585.1,136.0 591.2,136.7 597.2,137.3 603.2,137.9 609.3,138.6 615.3,139.2 621.3,139.8 627.4,140.4 633.4,141.0 639.4,141.6 645.5,142.2 651.5,142.8 657.6,143.4 663.6,143.9 669.6,144.5 675.7,145.1 681.7,145.6 687.7,146.1 693.8,146.7 699.8,147.2 705.9,147.7 711.9,148.2 717.9,148.8 724.0,149.3 730.0,149.8" fill="none" stroke="#A16207" stroke-width="2.2"/><circle cx="185.1" cy="67.3" r="4.5" fill="#101828"/><text x="185.1" y="55.3" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="middle">46일</text><text x="185.1" y="85.3" font-size="10.5" font-family="monospace" fill="#A16207" text-anchor="middle">2.55</text><circle cx="385.7" cy="109.1" r="4.5" fill="#101828"/><text x="385.7" y="97.1" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="middle">169일</text><text x="385.7" y="127.1" font-size="10.5" font-family="monospace" fill="#A16207" text-anchor="middle">1.85</text><circle cx="705.5" cy="147.7" r="4.5" fill="#101828"/><text x="705.5" y="117.7" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="middle">365일</text><text x="705.5" y="165.7" font-size="10.5" font-family="monospace" fill="#A16207" text-anchor="middle">1.20</text><line x1="110" y1="220" x2="730" y2="220" stroke="#B9B09B"/><line x1="110" y1="40" x2="110" y2="220" stroke="#B9B09B"/><text x="110.0" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text><text x="256.8" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">90</text><text x="403.7" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">180</text><text x="550.5" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">270</text><text x="705.5" y="238" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">365</text><text x="420.0" y="260" font-size="11" font-family="monospace" fill="#5D5E63" text-anchor="middle">관측 간격 (일)</text><text x="110" y="24" font-size="11" font-family="monospace" fill="#5D5E63">일당 전이 검출 (×1000)</text></svg>
+<figcaption><b>그림 7.</b> 관측 간격에 따른 일당 전이 검출량. 46일 간격은 169일 간격보다 <b>1.38배</b>,
+365일 간격보다 <b>2.11배</b> 많이 검출함. 약이 없어도 생기는 차이.</figcaption>
+</figure>
+
+<div class="mathbox"><span class="lbl">수식으로는</span>
+$$P_{\text{det}}(\Delta)=\frac{1-e^{-2q\Delta}}{2}$$
+<span class="read">읽는 법 — 간격 $\Delta$ 안에 전이가 홀수 번 일어날 확률. $\Delta$가 길수록 커지지만
+<b>일당으로 나누면 작아짐.</b> 즉 검사를 덜 하면 전이가 적게 잡힘.</span></div>
+
+<h3>③ 같은 사람을 상상해서 비교한다</h3>
+
+<p><b>임상 장면.</b> "약군 vs 비약군"으로 나누면, 두 군은 처음부터 다른 사람들임. 대신 이렇게 물음 —
+<b>"EF 42, LVEDD 5.2, BNP 4,500, 재원 7일인 사람이 약을 먹으면 vs 안 먹으면."</b>
+같은 조건을 가진 가상의 두 사람을 만들어 비교하는 것.</p>
+
+<p><b>그래서.</b> 전이 속도 자체를 조건의 함수로 둠. 약은 그 함수 안의 스위치 하나가 됨.</p>
+
+<div class="mathbox"><span class="lbl">수식으로는</span>
+$$q_{ij}=q_{ij}^{0}\,\exp\!\big(\beta_{ij}^{\top} Z+\gamma_{ij} A\big)$$
+<span class="read">읽는 법 — 상태 $i$에서 $j$로 넘어가는 <b>속도</b>($q$)가 조건 $Z$(EF·LVEDD·BNP·재원일수·나이)와
+치료 $A$에 따라 달라짐. $\gamma$가 "약의 효과"이고, $\beta$가 "아픈 정도의 효과". 둘을 동시에 추정하므로
+<b>"아픈 사람이 약을 받았다"와 "약이 나쁘다"를 구분</b>할 수 있게 됨.</span></div>
+
+<p>이렇게 구한 속도로 12개월 확률을 계산함.</p>
+
+<div class="mathbox"><span class="lbl">수식으로는</span>
+$$P(t\mid Z,A)=\exp(Qt)$$
+<span class="read">읽는 법 — 속도 $Q$를 12개월치로 굴린 것. 상태가 4개뿐이라 <b>정확히 계산됨</b>(시뮬레이션 불필요).</span></div>
+
+<h2><span class="num">09</span>파일럿 결과 — 무엇이 지워지고 무엇이 남았나</h2>
+
+<p>전체 5,315명 중 <b>1,600명</b>을 무작위로 뽑아(초음파 2회 이상 있는 488명, 관측 구간 1,168건)
+조건을 맞춰 다시 계산했음.</p>
+
+<figure>
+<svg viewBox="0 0 880 360" role="img" aria-label="그냥 비교와 조건 맞춤 비교"><rect x="600" y="12" width="11" height="11" fill="#9B2C2C"/><text x="618" y="22" font-size="11" font-family="monospace" fill="#51555D">그냥 비교</text><rect x="700" y="12" width="11" height="11" fill="#A16207"/><text x="718" y="22" font-size="11" font-family="monospace" fill="#51555D">조건 맞춤</text><text x="8" y="78" font-size="12" fill="#101828">정상 회복</text><rect x="480.0" y="56" width="144.4" height="18" fill="#9B2C2C" opacity="0.92"/><text x="632.4" y="69" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="start">+9.6</text><rect x="466.2" y="80" width="13.8" height="18" fill="#A16207" opacity="0.92"/><text x="458.2" y="93" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="end">-0.9</text><text x="8" y="150" font-size="12" fill="#101828">HFmrEF 유지</text><rect x="170.0" y="128" width="310.0" height="18" fill="#9B2C2C" opacity="0.92"/><text x="162.0" y="141" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="end">-20.7</text><rect x="402.9" y="152" width="77.1" height="18" fill="#A16207" opacity="0.92"/><text x="394.9" y="165" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="end">-5.1</text><text x="8" y="222" font-size="12" fill="#101828">HFrEF 진행</text><rect x="480.0" y="200" width="123.9" height="18" fill="#9B2C2C" opacity="0.92"/><text x="611.9" y="213" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="start">+8.3</text><rect x="480.0" y="224" width="14.3" height="18" fill="#A16207" opacity="0.92"/><text x="502.3" y="237" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="start">+1.0</text><text x="8" y="294" font-size="12" fill="#101828">사망</text><rect x="480.0" y="272" width="41.7" height="18" fill="#9B2C2C" opacity="0.92"/><text x="529.7" y="285" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="start">+2.8</text><rect x="480.0" y="296" width="76.6" height="18" fill="#A16207" opacity="0.92"/><text x="564.6" y="309" font-size="10.5" font-family="monospace" fill="#51555D" text-anchor="start">+5.1</text><line x1="480" y1="40" x2="480" y2="336" stroke="#101828" stroke-width="1.2"/><text x="480" y="352" font-size="10.5" font-family="monospace" fill="#5D5E63" text-anchor="middle">0</text></svg>
+<figcaption><b>그림 8.</b> 같은 자료에서 비보정 차이(빨강)와 조건을 맞춘 뒤의 차이(호박).
+회복 이득 <b>+9.6%p</b>가 <b>−0.9%p</b>로 사라지고, 사망 차이는 <b>+2.8%p</b>에서 <b>+5.1%p</b>로 오히려 커짐.</figcaption>
 </figure>
 
 <table>
-<thead><tr><th>12개월 결과</th><th class="n">비보정</th><th class="n">보정</th><th class="n">95% CI</th></tr></thead>
+<thead><tr><th>12개월 결과</th><th class="n">그냥 비교</th><th class="n">조건 맞춘 뒤</th><th class="n">95% 구간</th></tr></thead>
 <tbody>
 <tr><td>정상 회복</td><td class="n">+9.6%p</td><td class="n">−0.9%p</td><td class="n">−11.0~+6.4</td></tr>
 <tr><td>HFmrEF 유지</td><td class="n">−20.7%p</td><td class="n">−5.1%p</td><td class="n">−13.8~+2.1</td></tr>
@@ -330,97 +354,119 @@ $$p_{\text{det}}(\Delta)=\frac{1-e^{-2q\Delta}}{2}$$
 </tbody>
 </table>
 
-<p>전이별 치료 계수 $\gamma$ (양수면 그 전이가 빨라짐):</p>
+<h3>읽는 법 — 두 갈래로 갈린다</h3>
+
+<div class="warnbox"><span class="lbl">① 회복 이득은 사라졌다</span>
++9.6%p → −0.9%p. 즉 그 이득은 <b>약효가 아니라 "EF가 낮은 사람이 약을 받았다"</b>는 사실이었음.
+EF 40~41에서 출발한 사람은 약과 무관하게 다음 검사에서 올라오기 마련임(회귀평균).
+</div>
+
+<div class="warnbox"><span class="lbl">② 사망 신호는 남았다</span>
+HFmrEF→사망 HR <b>1.69</b>. EF·LVEDD·BNP·재원일수·나이를 전부 넣어도 남음.
+남은 것은 <b>내가 넣지 못한 중증도</b>임 — NYHA class, eGFR, 입원 중 활력징후, 이뇨제 용량.
+"아픈 정도"를 BNP 하나로 다 표현할 수 없음.
+</div>
+
+<p>전이별로 약의 계수만 떼어 보면 이렇게 나옴(1보다 크면 그 전이가 빨라짐).</p>
 
 <table>
-<thead><tr><th>전이</th><th class="n">HR $=e^{\gamma}$</th><th class="n">$\gamma$</th></tr></thead>
+<thead><tr><th>전이</th><th class="n">배수 (HR)</th><th class="n">계수 γ</th></tr></thead>
 <tbody>
 <tr><td>정상 → HFmrEF</td><td class="n">1.53</td><td class="n">+0.422</td></tr><tr><td>정상 → HFrEF</td><td class="n">1.35</td><td class="n">+0.297</td></tr><tr><td>정상 → 사망</td><td class="n">1.00</td><td class="n">-0.003</td></tr><tr><td>HFmrEF → 정상</td><td class="n">1.19</td><td class="n">+0.173</td></tr><tr><td>HFmrEF → HFrEF</td><td class="n">1.18</td><td class="n">+0.161</td></tr><tr><td>HFmrEF → 사망</td><td class="n">1.69</td><td class="n">+0.525</td></tr><tr><td>HFrEF → 정상</td><td class="n">0.85</td><td class="n">-0.160</td></tr><tr><td>HFrEF → HFmrEF</td><td class="n">1.38</td><td class="n">+0.319</td></tr><tr><td>HFrEF → 사망</td><td class="n">1.00</td><td class="n">-0.003</td></tr>
 </tbody>
 </table>
 
-<div class="warnbox"><span class="lbl">해석 — 둘로 갈린다</span>
-<b>회복 이득은 공변량으로 전부 설명된다.</b> +9.6%p → −0.9%p. 즉 그 이득은 약효가 아니라
-"EF가 낮은 사람이 약을 받았다"는 사실(회귀평균)이었다.<br><br>
-<b>사망 초과는 보정해도 남는다.</b> HFmrEF→사망 HR <b>1.69</b>. EF·LVEDD·BNP·재원일수·나이를
-전부 넣어도 남으므로, 남은 것은 <b>측정하지 않은 중증도</b>(NYHA·eGFR·입원 중 상태)다.
+<div class="plain"><span class="lbl">신뢰구간 읽는 법</span>
+위 표의 95% 구간이 <b>0을 포함</b>하면 "차이가 있다/없다"를 확정할 수 없음. 파일럿은 488명이라 넓고,
+전체 4,554명이면 절반 이하로 좁아짐. 지금 단계에서 말할 수 있는 것은
+<b>"회복 이득은 조건 보정으로 설명되고, 사망 신호는 설명되지 않는다"</b>까지임.
 </div>
 
-<p>모든 신뢰구간이 0을 포함한다. 파일럿 488명이라 넓고, 전체 4,554명이면 절반 이하로 좁아진다.
-지금 단계에서 말할 수 있는 것은 <b>"회복 이득은 보정으로 설명되고, 사망 신호는 설명되지 않는다"</b>까지다.</p>
+<h2><span class="num">10</span>약을 0/1로 바꾸는 것만으로 충분한가</h2>
 
-<h2><span class="num">10</span>Counterfactual — 치료에 0/1만 넣으면 되나</h2>
-
-<p><b>아니다.</b> 위 ATE는 이미 $A$를 0과 1로 바꿔 계산한 값인데, 그게 성립하려면 조건이 세 개 필요하다.</p>
+<p class="lead"><b>충분하지 않음.</b> 세 가지 조건이 필요한데, 임상 질문으로 바꾸면 이렇게 됨.</p>
 
 <table>
-<thead><tr><th>조건</th><th>내용</th><th>이번 자료</th></tr></thead>
+<thead><tr><th>조건</th><th>임상 질문</th><th>우리 자료</th></tr></thead>
 <tbody>
-<tr><td>① 교환가능성</td><td>$Y^a \perp A \mid Z$ — 측정된 Z로 교란을 다 설명</td><td class="pos">아마 실패</td></tr>
-<tr><td>② 양성</td><td>모든 Z 층에서 양쪽 치료가 관찰됨</td><td class="neg">대체로 충족</td></tr>
-<tr><td>③ 일관성·시간가변 교란 없음</td><td>$A(t)$가 $S(t)$에 영향받지 않음</td><td class="pos">실패</td></tr>
+<tr><td>① 교환가능성</td><td>"EF·BNP·재원일수가 같으면, 약을 받을 확률이 결과와 무관한가?"</td><td class="pos">아마 아님</td></tr>
+<tr><td>② 양성</td><td>"EF 40에 BNP 8,000인 사람 중 약을 안 받은 사람이 있나?"</td><td class="neg">대체로 있음</td></tr>
+<tr><td>③ 시간가변 교란 없음</td><td>"약을 시작한 이유가 결과와 무관한가?"</td><td class="pos">아님</td></tr>
 </tbody>
 </table>
 
-<p>①과 ③이 문제다. 특히 ③이 결정적이다. 실제 진료는 이렇게 흐른다.</p>
+<p>①은 "아픈 사람이 약을 받는다"는 문제라 조건을 넣어 해결함. ③이 더 어려움.</p>
 
-<div class="plain"><span class="lbl">되먹임 구조</span>
-EF 하락 → <b>약 시작</b> → EF 변화 → 다음 처방 결정. 즉 <b>치료가 결과의 과거값에 의존</b>한다.
-이때 $A$를 0/1로 고정하는 것은 "모두에게 강제로 약을 준다"가 아니라
-"약을 받은 사람과 안 받은 사람을 비교한다"에 가깝다.</div>
+<div class="plain"><span class="lbl">실제 진료의 흐름</span>
+EF 떨어짐 → <b>약 올림</b> → EF 회복 → 외래 유지 → 다시 조정<br><br>
+즉 <b>치료가 결과를 보고 결정됨.</b> 그래서 약을 0으로 고정하는 것은 "모두에게 약을 안 준다"가
+아니라 "약을 안 받은 사람들과 비교한다"에 가까움. EF가 떨어진 사람에게 약을 안 줬다면,
+그 사람이 나빠진 이유는 <b>약이 없어서가 아니라 원래 나빠서</b>일 수 있음.
+</div>
 
-<p>일반형은 g-formula다. 치료를 시점마다 고정하고 상태분포를 한 달씩 굴린다.</p>
+<h3>그래서 처방을 정해놓고 굴린다 (g-formula)</h3>
 
+<p>"만약 모든 환자에게 첫날부터 약을 시작했다면"과 "아무도 시작하지 않았다면"을 각각
+<b>한 달씩 굴려서</b> 12개월 뒤 상태를 세는 방식임. 처방을 내가 정해놓고 환자를 따라가는 것.</p>
+
+<div class="mathbox"><span class="lbl">수식으로는</span>
 $$P_j(t+1)=\sum_{i=0}^{3}P_i(t)\,\big[e^{Q(Z,A(t))\cdot 1}\big]_{ij}$$
-$$\widehat{\mathrm{ATE}}=\frac{1}{n}\sum_{n}\Big[\hat{P}^{(A=1)}(12)-\hat{P}^{(A=0)}(12)\Big]$$
+<span class="read">읽는 법 — 이번 달 상태 분포에 "한 달치 전이"를 곱해 다음 달로 넘김. $A(t)$를 내가
+0이나 1로 고정해두고 12번 반복하면, 그 처방의 결과가 나옴.</span></div>
 
-<p>치료가 시간에 따라 바뀌면 $A$를 상수로 두는 순간 이 재귀가 틀어진다. 그때 필요한 것이
-MSM+IPW이고, 가중치는 시점별로 곱해진다.</p>
+<p>약을 중간에 올리고 내리는 것까지 반영하려면 <b>시점별 처방 기록</b>이 필요하고, 그때는
+가중치(IPW)를 씀. "이 환자가 이 시점에 약을 받은 것이 얼마나 예상 밖이었나"의 역수를 곱해서
+<b>교란을 인위적으로 평평하게</b> 만드는 것.</p>
 
-$$w(t)=\prod_{k\le t}\frac{P\big(A_k\mid \bar A_{k-1}\big)}{P\big(A_k\mid \bar A_{k-1},\bar L_k\big)}$$
+<div class="mathbox"><span class="lbl">수식으로는</span>
+$$w(t)=\prod_{k\le t}\frac{P(A_k\mid \bar A_{k-1})}{P(A_k\mid \bar A_{k-1},\bar L_k)}$$
+<span class="read">읽는 법 — 분모는 "그때까지의 검사결과를 알 때 약을 받을 확률", 분자는 "검사결과를
+모를 때 받을 확률". 분모가 작은(즉 예상 밖으로 받은) 환자에게 큰 가중치를 줌.</span></div>
 
-<h3>그래서 MCMC·몬테카를로가 필요한가 — 지점이 셋으로 갈린다</h3>
+<h3>시뮬레이션(MCMC)을 돌려야 하나</h3>
+
+<p><b>우리 경우엔 필요 없음.</b> 상태가 4개뿐이라 12개월 확률을 정확히 계산할 수 있음. 실제로 비교했음.</p>
 
 <table>
-<thead><tr><th>무엇을</th><th>닫힌형</th><th>몬테카를로가 필요한가</th></tr></thead>
+<thead><tr><th>12개월 (약 안 받은 군)</th><th class="n">정상</th><th class="n">HFmrEF</th><th class="n">HFrEF</th><th class="n">사망</th></tr></thead>
 <tbody>
-<tr><td>상태 궤적 (4상태)</td><td>$\exp(Qt)$ 로 정확</td><td class="neg">불필요</td></tr>
-<tr><td>모수 불확실성</td><td>없음</td><td class="pos">필요 (부트스트랩 또는 MCMC)</td></tr>
-<tr><td>개인 이질성(random effect)·비마르코프·정보적 관측</td><td>없음</td><td class="pos">사실상 유일</td></tr>
+<tr><td>정확한 계산</td><td class="n">0.306</td><td class="n">0.409</td><td class="n">0.215</td><td class="n">0.070</td></tr>
+<tr><td>20만 명 시뮬레이션</td><td class="n">0.308</td><td class="n">0.408</td><td class="n">0.214</td><td class="n">0.071</td></tr>
 </tbody>
 </table>
 
-<p>첫째가 불필요하다는 것은 실제로 확인했다. 적합된 $Q$로 20만 명을 하루 단위로 시뮬레이션한 값과
-행렬지수 해석해가 거의 같다.</p>
+<p>차이 0.002는 시뮬레이션 오차임. <b>계산이 되는데 시뮬레이션을 돌리면 시간만 쓰고 오차만 늘어남.</b></p>
 
 <table>
-<thead><tr><th>12개월 (A=0)</th><th class="n">정상</th><th class="n">HFmrEF</th><th class="n">HFrEF</th><th class="n">사망</th></tr></thead>
+<thead><tr><th>무엇을 구할 때</th><th>방법</th></tr></thead>
 <tbody>
-<tr><td>해석해 $\exp(Qt)$</td><td class="n">0.306</td><td class="n">0.409</td><td class="n">0.215</td><td class="n">0.070</td></tr>
-<tr><td>몬테카를로 20만</td><td class="n">0.308</td><td class="n">0.408</td><td class="n">0.214</td><td class="n">0.071</td></tr>
+<tr><td>상태 궤적 (4개 상태)</td><td class="neg">정확한 계산 — 시뮬레이션 불필요</td></tr>
+<tr><td>불확실성 구간</td><td>부트스트랩 — 환자를 200번 다시 뽑아 처음부터 재계산</td></tr>
+<tr><td>환자마다 다른 약 반응</td><td class="pos">MCMC 필요 (계산으로 안 풀림)</td></tr>
+<tr><td>검사가 상태 때문에 시행된 경우</td><td class="pos">MCMC 또는 관측모형</td></tr>
 </tbody>
 </table>
 
-<p>차이는 0.002 이하, 즉 몬테카를로 오차다. <b>상태 수가 4개일 때 궤적 시뮬레이션은 낭비다.</b>
-정확한 행렬지수가 더 빠르고 오차도 없다.</p>
-
-<div class="warnbox"><span class="lbl">MCMC를 써야 하는 진짜 조건</span>
-<b>환자별 random effect</b>를 넣는 순간($q_{ij}^{(m)}=q_{ij}\cdot u_m$, $u_m\sim\mathrm{Gamma}$)
-우도에 차원 수만큼의 적분이 생겨 닫힌형이 사라진다. 그때 MCMC(또는 변분근사)가 필요하다.
-지금처럼 4상태·고정효과 모형에서는 <b>부트스트랩으로 충분</b>하고, 실제로 위 CI가 그렇게 나왔다.
+<div class="plain"><span class="lbl">부트스트랩이 뭔가</span>
+환자 1,600명을 <b>복원추출로 다시 뽑아</b>(같은 사람이 두 번 들어갈 수 있음) 전체 분석을 처음부터
+다시 하는 것. 이걸 200번 하면 답이 얼마나 흔들리는지 알 수 있음. 위 표의 95% 구간이 그렇게 나온 값임.
 </div>
 
-<p>정리하면 이 순서다.</p>
+<h3>정리</h3>
 <ol>
-<li>상태 궤적 → <b>행렬지수</b> (몬테카를로 금지, 오차만 늘어남)</li>
-<li>모수 불확실성 → <b>부트스트랩</b> (환자 단위 재표집, 200회)</li>
-<li>시간가변 치료·교란 → <b>g-formula 재귀 또는 MSM+IPW</b></li>
-<li>개인 이질성·정보적 관측 → <b>MCMC/계층모형</b></li>
+<li>회복 이득은 <b>조건 보정으로 사라졌다</b> — 약효가 아니라 회귀평균이었음</li>
+<li>사망 신호는 <b>남았다</b> — 측정 못 한 중증도 때문</li>
+<li>약을 0/1로 바꾸는 것만으로는 부족 — <b>시간가변 교란</b>이 남아 있음</li>
+<li>그걸 풀려면 <b>처방 시작일</b>이 필요하고, 원본을 지웠으므로 재다운로드가 선행돼야 함</li>
 </ol>
 
-<p>다음 단계는 ③을 실제로 넣는 것이다. 지금 파일럿은 치료를 baseline에서 한 번만 정했으므로
-①만 다룬 셈이고, ③은 아직 손대지 않았다. 처방 시작일이 필요한데 원본을 지웠으므로
-재다운로드가 선행돼야 한다.</p>
+<p>논문에 지금 쓸 수 있는 문장은 여기까지임.</p>
+
+<blockquote style="margin:var(--s3) 0;padding:var(--s3);border-left:4px solid var(--accent);background:var(--surface-1)">
+HFmrEF에서 GDMT 시작과 12개월 회복의 연관성은 기저 EF·좌심실 크기·BNP·재원일수를 보정하면 사라진다
+(+9.6%p → −0.9%p). 반면 사망과의 연관성은 보정 후에도 남는다(HFmrEF→사망 HR 1.69).
+따라서 회복 신호는 회귀평균으로 설명되며, 사망 신호는 측정되지 않은 중증도에 기인할 가능성이 높다.
+</blockquote>
 
 
 <footer>
