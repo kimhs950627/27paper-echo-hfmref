@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연구 노트 — 재검 문턱을 어떻게 정하나</title>
+<meta name="description" content="Youden·용량·비용 기준으로 재검 문턱을 비교하고, 반사실이 필요한 지점을 정리한 연구 노트. 파일럿 수치와 그림 포함.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="연구 노트 — 재검 문턱을 어떻게 정하나">
+<meta property="og:description" content="Youden·용량·비용 기준으로 재검 문턱을 비교하고, 반사실이 필요한 지점을 정리한 연구 노트. 파일럿 수치와 그림 포함.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://kimhs950627.github.io/27paper-echo-hfmref/notes/threshold/">
+<meta property="og:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kimhs950627.github.io/27paper-echo-hfmref/assets/og.png">
+<meta name="theme-color" content="#1B1113">
+<link rel="canonical" href="https://kimhs950627.github.io/27paper-echo-hfmref/notes/threshold/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231B1113'/%3E%3Cpath d='M6 16 H13 M13 16 L22 8 M13 16 H22 M13 16 L22 24' stroke='%23F6F2EF' stroke-width='2.2' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Pretendard:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../styles/tokens.css">
+<link rel="stylesheet" href="../../styles/site.css">
+</head>
+<body>
+<nav class="pagetabs" aria-label="페이지 전환">
+  <div class="wrap">
+    <a class="pt" href="../.././">연구 계획</a>
+    <a class="pt" href="../../review/">데이터 리뷰</a>
+    <a class="pt" href="../../methods/">방법론 리포트</a>
+    <a class="pt active" href="../../notes/threshold/" aria-current="page">연구 노트</a>
+  </div>
+</nav>
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">연구 노트 · 재검 문턱 · 2026-11-05</p>
+    <h1>재검 문턱,<br><em>몇 %부터 다시 찍을까</em></h1>
+    <p class="sub">“예측 확률이 x% 이상이면 다시 재라”에서 <b>x를 무엇으로 정할 것인가</b>.
+    결론부터: 문턱은 하나가 아니라 셋이고(Youden·용량·비용), 우리 파일럿에서는 <b>0.17 / 0.25</b>가 나온다.
+    그리고 <b>문턱을 정하는 데는 반사실(counterfactual)이 필요 없고</b>, “재검이 예후를 좋게 한다”고 말할 때만 필요하다.</p>
+    <div class="statband">
+      <div><div class="v">0.167</div><div class="l">Youden 문턱<br>민감도 80.0% · 특이도 83.3%</div></div>
+      <div><div class="v p">0.246</div><div class="l">용량 기준(상위 20%)<br>PPV 47.2%</div></div>
+      <div><div class="v r">0.877</div><div class="l">AUC (약물·ICD 종점)<br>범주 종점 0.824</div></div>
+      <div><div class="v">×2.1</div><div class="l">재검 필요수(NNR)<br>전부 재검은 7.6</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="why">
+  <h2><span class="n">01</span>왜 “적당히 정하면” 안 되나</h2>
+  <p class="lead">문턱을 낮추면 재검을 많이 해서 놓치는 사람이 줄지만, 불필요한 재검이 늘어난다.
+  높이면 반대다. 문제는 <b>“놓침”과 “불필요”의 단위가 다르다</b>는 것 — 그래서 “무엇을 최소화하는가”를 먼저 정해야 한다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>기준</th><th>무엇을 최소화하나</th><th>숨은 가정</th><th class="n">우리 데이터 문턱</th></tr></thead>
+      <tbody>
+        <tr><td><b>Youden</b></td><td>놓침 + 불필요를 <b>같은 무게</b>로</td><td>두 오류의 비용이 같다</td><td class="n">0.167</td></tr>
+        <tr><td><b>용량(capacity)</b></td><td>정해진 재검 인력 안에서 최대 포착</td><td>“전체의 20%까지 재검 가능”이라는 운영 제약</td><td class="n">0.246</td></tr>
+        <tr><td><b>비용(결정곡선)</b></td><td>손해 대비 이득</td><td>손해:이득 비율을 사람이 정함</td><td class="n">0.15–0.25</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>세 줄이 서로 다른 숫자를 준다. 그래서 논문은 <b>“무엇을 최적화했는지”를 반드시 밝혀야</b> 하고,
+  우리는 <b>용량 기준을 주 분석</b>으로 두는 걸 권한다 — 실제 제약이 인력이고, 비용 가정을 지어내지 않아도 되기 때문이다.</p>
+</section>
+
+<section id="numbers">
+  <h2><span class="n">02</span>파일럿 숫자</h2>
+  <p>30일 내 재측정 쌍 12,522개(환자 7,923명, 중앙 간격 7.2일).
+  종점은 두 가지로 계산했다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>종점</th><th class="n">사건률</th><th class="n">AUC</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td><b>약물·ICD 적응 변화</b> (35 또는 40 교차)</td><td class="n">13.1%</td><td class="n">0.877</td><td>ARNI/MRA·ICD 적응이 실제로 바뀌는가</td></tr>
+        <tr><td>범주 변화 (40 또는 50 교차)</td><td class="n">17.2%</td><td class="n">0.824</td><td>HFrEF/HFmrEF/HFpEF 라벨이 바뀌는가</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">약물·ICD 종점의 AUC가 더 높다(0.877 vs 0.824).
+  50 경계 교차는 대부분 잡음이라 라벨에 섞이면 성능이 희석되기 때문이다. 그래서 <b>주 종점을 약물·ICD로 두는 것을 권한다</b>.</p>
+</section>
+
+<section id="roc">
+  <h2><span class="n">03</span>그림 1 — ROC 위에서 문턱은 “점”이다</h2>
+  <p>ROC 곡선은 <b>문턱을 어디로 잡아도</b> 그 순간의 민감도·특이도를 이어 그린 선이다.
+  곡선 위의 한 점을 고르는 것이 곧 문턱 x를 고르는 일이다.</p>
+  <figure>
+    <svg viewBox="0 0 880 400" role="img" aria-label="재분류 예측의 ROC 곡선과 두 문턱">
+<rect x="62" y="26" width="618" height="320" fill="none" stroke="var(--color-border-strong)" stroke-width="1"/><line x1="62.0" y1="26" x2="62.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="62.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.0</text><line x1="185.6" y1="26" x2="185.6" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="185.6" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.2</text><line x1="309.2" y1="26" x2="309.2" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="309.2" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.4</text><line x1="432.8" y1="26" x2="432.8" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="432.8" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.6</text><line x1="556.4" y1="26" x2="556.4" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="556.4" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.8</text><line x1="680.0" y1="26" x2="680.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="680.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">1.0</text><line x1="62" y1="346.0" x2="680" y2="346.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="350.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.0</text><line x1="62" y1="266.0" x2="680" y2="266.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="270.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.2</text><line x1="62" y1="186.0" x2="680" y2="186.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="190.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.5</text><line x1="62" y1="106.0" x2="680" y2="106.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="110.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.8</text><line x1="62" y1="26.0" x2="680" y2="26.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="30.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">1.0</text><text x="371" y="386" font-size="12" fill="var(--color-text-2)" text-anchor="middle">1 − 특이도</text><text x="62" y="17" font-size="12" fill="var(--color-text-2)">민감도</text>
+<line x1="62" y1="346" x2="680" y2="26" stroke="var(--color-text-3)" stroke-width="1" stroke-dasharray="4 4"/>
+<polyline points="62.0,346.0 62.4,340.0 63.1,331.6 63.8,327.1 64.5,323.4 65.2,320.1 65.8,315.2 66.2,308.4 66.8,303.1 67.3,296.3 67.8,291.2 68.6,287.3 69.1,281.7 69.7,279.0 70.4,274.7 71.4,269.8 72.2,265.7 72.9,260.2 73.6,255.8 74.1,252.5 75.2,248.2 76.0,243.7 76.8,240.9 77.5,239.2 78.2,236.7 79.0,233.6 79.7,230.6 80.6,227.3 81.7,224.6 82.6,220.5 83.6,218.7 84.2,214.8 85.2,211.5 85.9,208.0 87.5,205.9 88.4,203.0 89.0,199.8 89.9,197.5 90.8,194.2 91.9,190.7 93.0,187.4 94.2,185.0 95.4,182.3 97.1,179.6 98.7,177.4 99.6,173.5 100.7,171.2 101.8,168.7 103.1,165.9 103.8,163.8 105.2,160.7 105.9,157.9 106.9,156.0 108.1,153.5 109.5,151.3 110.8,149.2 112.1,146.8 113.2,144.7 114.9,142.0 116.2,139.8 117.5,137.9 119.5,136.3 121.3,134.4 122.8,131.8 125.8,129.7 127.3,127.7 128.9,125.8 130.2,123.8 132.4,121.9 133.9,119.3 135.7,117.8 137.1,115.9 139.0,113.7 140.2,111.8 142.2,109.8 144.3,108.0 146.6,104.7 148.3,102.8 150.4,101.0 151.9,99.3 154.5,97.5 157.1,95.0 160.3,93.4 162.4,91.7 165.8,89.7 169.8,88.0 174.2,86.4 179.0,84.7 184.9,83.1 189.9,81.6 193.7,80.0 198.8,78.2 200.9,76.5 206.3,74.9 212.4,73.2 217.5,71.6 222.1,70.0 229.5,68.5 235.9,66.5 238.7,65.0 244.7,63.0 254.3,61.1 263.0,59.5 270.1,58.0 282.5,56.4 297.5,54.8 308.2,53.3 316.2,51.7 325.0,50.2 338.1,48.6 362.2,47.1 382.5,45.3 391.2,43.7 413.0,42.2 433.5,40.6 445.3,38.9 463.8,37.3 477.9,35.8 506.3,34.2 544.5,32.6 567.1,31.1 596.4,29.5 643.4,28.0 667.0,26.4 680.0,26.0" fill="none" stroke="var(--color-accent)" stroke-width="2.5"/>
+<circle cx="165.2" cy="90.0" r="6" fill="var(--color-accent)"/>
+<text x="175.2" y="80.0" font-size="11.5" fill="var(--color-accent-strong)">Youden 0.167</text>
+<circle cx="137.4" cy="115.9" r="6" fill="var(--color-positive)" stroke="#fff" stroke-width="1.5"/>
+<text x="147.4" y="133.9" font-size="11.5" fill="var(--color-text-2)">상위 20% 0.246</text>
+<line x1="700" y1="70" x2="726" y2="70" stroke="var(--color-accent)" stroke-width="3"/><text x="732" y="74" font-size="11.5" fill="var(--color-text-2)">ROC (AUC 0.877)</text><line x1="700" y1="94" x2="726" y2="94" stroke="var(--color-text-3)" stroke-width="3"/><text x="732" y="98" font-size="11.5" fill="var(--color-text-2)">무작위(AUC 0.5)</text>
+</svg>
+    <figcaption><b>왼쪽 위에 가까울수록 좋은 모형.</b> 주황 점이 Youden, 초록 점이 “전체의 20%만 재검”했을 때다.
+    Youden은 더 많은 사람(25%)을 재검하면서 재분류를 더 잡고, 용량 기준은 더 적게(20%) 재검하면서 PPV가 높다.</figcaption>
+  </figure>
+</section>
+
+<section id="youden">
+  <h2><span class="n">04</span>Youden의 함정</h2>
+  <div class="mathbox">
+    <span class="lbl">Youden 지수</span>
+    J = 민감도 + 특이도 − 1 &nbsp;→&nbsp; J를 최대로 하는 x
+    <span class="read">민감도와 특이도를 같은 무게로 더한다. 즉 “놓친 재분류”와 “불필요한 재검”의 비용이 같다고 가정한다.</span>
+  </div>
+  <p>현실에서는 두 비용이 다르다. 불필요한 재검은 에코 1회(수십 분, 인력)이고,
+  놓친 적응 변화는 약을 잘못 시작하거나 ICD 상담을 놓치는 일이다. 이 비용비를 넣으면 최적 문턱은</p>
+  <div class="mathbox">
+    <span class="lbl">베이즈 결정 문턱</span>
+    p* = c<sub>불필요</sub> / (c<sub>불필요</sub> + c<sub>놓침</sub>)
+    <span class="read">c가 같으면 p*=0.5, 놓침이 5배 아프면 p*≈0.17 — 우리 Youden 값과 우연히 비슷해진다.</span>
+  </div>
+  <p>우리 데이터의 Youden 문턱 0.167은 <b>전체의 25.0%를 재검</b>하게 만든다.
+  PPV는 42.0%로, 재검 2.4건당 1건이 실제로 바뀐다. 나쁘지 않지만 인력 계획상 25%는 부담이다.</p>
+</section>
+
+<section id="sweep">
+  <h2><span class="n">05</span>그림 2 — 문턱을 움직이면 네 곡선이 같이 움직인다</h2>
+  <p>문턱을 올리면 민감도는 떨어지고 특이도·PPV는 오른다. 재검 비율은 그대로 내려간다.
+  <b>“몇 %부터”를 정한다는 것은 이 네 곡선 위의 한 세로선을 고르는 일</b>이다.</p>
+  <figure>
+    <svg viewBox="0 0 880 400" role="img" aria-label="문턱에 따른 민감도·특이도·PPV·재검비율">
+<rect x="62" y="26" width="618" height="320" fill="none" stroke="var(--color-border-strong)" stroke-width="1"/><line x1="62.0" y1="26" x2="62.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="62.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.0</text><line x1="165.0" y1="26" x2="165.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="165.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.1</text><line x1="268.0" y1="26" x2="268.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="268.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.2</text><line x1="371.0" y1="26" x2="371.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="371.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.3</text><line x1="474.0" y1="26" x2="474.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="474.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.4</text><line x1="577.0" y1="26" x2="577.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="577.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.5</text><line x1="680.0" y1="26" x2="680.0" y2="346" stroke="var(--color-border)" stroke-width="1"/><text x="680.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.6</text><line x1="62" y1="346.0" x2="680" y2="346.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="350.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.0</text><line x1="62" y1="266.0" x2="680" y2="266.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="270.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.2</text><line x1="62" y1="186.0" x2="680" y2="186.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="190.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.5</text><line x1="62" y1="106.0" x2="680" y2="106.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="110.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.8</text><line x1="62" y1="26.0" x2="680" y2="26.0" stroke="var(--color-border)" stroke-width="1"/><text x="54" y="30.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">1.0</text><text x="371" y="386" font-size="12" fill="var(--color-text-2)" text-anchor="middle">문턱 x (예측 재분류 확률이 이 값 이상이면 재검)</text><text x="62" y="17" font-size="12" fill="var(--color-text-2)">비율</text>
+<line x1="234.0" y1="26" x2="234.0" y2="346" stroke="var(--color-accent)" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="228.0" y="42" font-size="11" fill="var(--color-accent-strong)" text-anchor="end">Youden 0.17</text>
+<line x1="315.4" y1="26" x2="315.4" y2="346" stroke="var(--color-positive)" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="321.4" y="336" font-size="11" fill="var(--color-text-2)">상위 20% 0.25</text>
+<polyline points="113.5,49.0 165.0,69.8 216.5,86.2 268.0,99.3 319.5,117.8 371.0,138.0 422.5,165.8 474.0,189.5 525.5,215.4 577.0,237.2 628.5,264.4 680.0,290.6" fill="none" stroke="var(--color-accent)" stroke-width="2.2"/>
+<polyline points="113.5,167.1 165.0,109.2 216.5,84.6 268.0,72.4 319.5,64.1 371.0,54.8 422.5,47.4 474.0,41.7 525.5,37.5 577.0,34.3 628.5,31.4 680.0,29.2" fill="none" stroke="var(--color-text-1)" stroke-width="2.2"/>
+<polyline points="113.5,268.9 165.0,239.1 216.5,217.7 268.0,203.9 319.5,194.0 371.0,179.0 422.5,166.8 474.0,154.0 525.5,144.1 577.0,133.5 628.5,123.0 680.0,111.8" fill="none" stroke="var(--color-positive)" stroke-width="2.2"/>
+<polyline points="113.5,184.4 165.0,237.5 216.5,260.9 268.0,273.0 319.5,283.0 371.0,293.8 422.5,303.8 474.0,311.8 525.5,318.8 577.0,324.6 628.5,330.6 680.0,336.1" fill="none" stroke="var(--color-text-3)" stroke-width="2" stroke-dasharray="6 4"/>
+<line x1="700" y1="60" x2="726" y2="60" stroke="var(--color-accent)" stroke-width="3"/><text x="732" y="64" font-size="11.5" fill="var(--color-text-2)">민감도</text><line x1="700" y1="84" x2="726" y2="84" stroke="var(--color-text-1)" stroke-width="3"/><text x="732" y="88" font-size="11.5" fill="var(--color-text-2)">특이도</text><line x1="700" y1="108" x2="726" y2="108" stroke="var(--color-positive)" stroke-width="3"/><text x="732" y="112" font-size="11.5" fill="var(--color-text-2)">PPV</text><line x1="700" y1="132" x2="726" y2="132" stroke="var(--color-text-3)" stroke-width="3"/><text x="732" y="136" font-size="11.5" fill="var(--color-text-2)">재검 비율</text>
+</svg>
+    <figcaption>민감도 = 재분류를 잡는 비율, 특이도 = 안 바뀌는 사람을 거르는 비율, PPV = 재검한 사람 중 실제로 바뀌는 비율,
+    재검 비율 = 전체 중 다시 찍는 비율. 문턱 0.05에서는 거의 전부 재검(민감도 95%대)이지만 PPV는 20% 아래다.
+    0.25(오른쪽 점선)에서는 재검 20%, PPV 47%.</figcaption>
+  </figure>
+</section>
+
+<section id="nb">
+  <h2><span class="n">06</span>그림 3 — 결정곡선: “전부 재검”은 언제 손해인가</h2>
+  <p>순이득(net benefit)은 <b>재검 1회의 가치를 “잡은 재분류 − 불필요한 재검의 손해”로 환산</b>한 값이다.
+  문턱 x가 “재검 1건이 얼마나 아픈지”를 나타내므로, x가 커질수록 전부 재검은 급격히 손해가 된다.</p>
+  <figure>
+    <svg viewBox="0 0 880 400" role="img" aria-label="결정곡선"><rect x="62" y="26" width="618" height="320" fill="none" stroke="var(--color-border-strong)"/><line x1="62" y1="346.0" x2="680" y2="346.0" stroke="var(--color-border)"/><text x="54" y="350.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">-0.4</text><line x1="62" y1="229.6" x2="680" y2="229.6" stroke="var(--color-border)"/><text x="54" y="233.6" font-size="11" fill="var(--color-text-3)" text-anchor="end">-0.2</text><line x1="62" y1="113.3" x2="680" y2="113.3" stroke="var(--color-border)"/><text x="54" y="117.3" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.0</text><line x1="62" y1="55.1" x2="680" y2="55.1" stroke="var(--color-border)"/><text x="54" y="59.1" font-size="11" fill="var(--color-text-3)" text-anchor="end">0.1</text><text x="62.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.0</text><text x="165.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.1</text><text x="268.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.2</text><text x="371.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.3</text><text x="474.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.4</text><text x="577.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.5</text><text x="680.0" y="364" font-size="11" fill="var(--color-text-3)" text-anchor="middle">0.6</text><line x1="62" y1="113.3" x2="680" y2="113.3" stroke="var(--color-text-3)" stroke-width="1.2"/><polyline points="113.5,54.5 165.0,62.1 216.5,67.9 268.0,73.1 319.5,78.9 371.0,83.0 422.5,88.3 474.0,92.3 525.5,97.0 577.0,100.5 628.5,104.0 680.0,107.5" fill="none" stroke="var(--color-accent)" stroke-width="2.5"/><polyline points="113.5,63.8 165.0,92.9 216.5,126.1 268.0,163.3 319.5,205.2 371.0,253.5 422.5,309.3" fill="none" stroke="var(--color-negative)" stroke-width="2.2" stroke-dasharray="6 4"/><text x="371" y="386" font-size="12" fill="var(--color-text-2)" text-anchor="middle">문턱 x</text><text x="62" y="17" font-size="12" fill="var(--color-text-2)">순이득 (net benefit)</text><line x1="700" y1="70" x2="726" y2="70" stroke="var(--color-accent)" stroke-width="3"/><text x="732" y="74" font-size="11.5" fill="var(--color-text-2)">모형으로 고른 재검</text><line x1="700" y1="94" x2="726" y2="94" stroke="var(--color-negative)" stroke-width="3"/><text x="732" y="98" font-size="11.5" fill="var(--color-text-2)">전부 재검</text></svg>
+    <figcaption>빨간 점선(전부 재검)은 x가 0.15를 넘으면 0 아래로 떨어진다. 모형은 x=0.4까지도 양수다.
+    즉 <b>“아무나 재검”은 비용이 조금만 비싸져도 손해</b>이고, 선별이 그 손해를 막는다.</figcaption>
+  </figure>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th class="n">문턱 x</th><th class="n">모형 순이득</th><th class="n">전부 재검 순이득</th></tr></thead>
+      <tbody>
+        <tr><td class="n">0.10</td><td class="n">0.088</td><td class="n">0.035</td></tr>
+        <tr><td class="n">0.20</td><td class="n">0.069</td><td class="n">-0.086</td></tr>
+        <tr><td class="n">0.30</td><td class="n">0.052</td><td class="n">-0.241</td></tr>
+        <tr><td class="n">0.40</td><td class="n">0.036</td><td class="n">-0.448</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="calib">
+  <h2><span class="n">07</span>그림 4 — 확률을 “%”로 말하려면 보정이 맞아야 한다</h2>
+  <p>x를 <b>절대 확률</b>로 쓰려면(“25% 이상이면 재검”) 예측확률이 실제 빈도와 맞아야 한다.
+  위험 10분위로 나눠 예측과 실제를 비교했다.</p>
+  <figure>
+    <svg viewBox="0 0 880 400" role="img" aria-label="보정 10분위"><rect x="62" y="26" width="618" height="320" fill="none" stroke="var(--color-border-strong)"/><line x1="62" y1="346" x2="680" y2="346" stroke="var(--color-border-strong)"/><line x1="62" y1="346.0" x2="680" y2="346.0" stroke="var(--color-border)"/><text x="54" y="350.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">0%</text><line x1="62" y1="282.0" x2="680" y2="282.0" stroke="var(--color-border)"/><text x="54" y="286.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">20%</text><line x1="62" y1="218.0" x2="680" y2="218.0" stroke="var(--color-border)"/><text x="54" y="222.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">40%</text><line x1="62" y1="154.0" x2="680" y2="154.0" stroke="var(--color-border)"/><text x="54" y="158.0" font-size="11" fill="var(--color-text-3)" text-anchor="end">60%</text><rect x="71.9" y="343.4" width="18.5" height="2.6" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="94.1" y="341.8" width="18.5" height="4.2" fill="var(--color-accent)"/><text x="92.9" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">1</text><text x="92.9" y="335.8" font-size="10" fill="var(--color-text-2)" text-anchor="middle">1</text><rect x="133.7" y="340.9" width="18.5" height="5.1" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="155.9" y="340.9" width="18.5" height="5.1" fill="var(--color-accent)"/><text x="154.7" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">2</text><text x="154.7" y="334.9" font-size="10" fill="var(--color-text-2)" text-anchor="middle">2</text><rect x="195.5" y="338.6" width="18.5" height="7.4" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="217.7" y="341.5" width="18.5" height="4.5" fill="var(--color-accent)"/><text x="216.5" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">3</text><text x="216.5" y="335.5" font-size="10" fill="var(--color-text-2)" text-anchor="middle">1</text><rect x="257.3" y="336.1" width="18.5" height="9.9" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="279.5" y="337.4" width="18.5" height="8.6" fill="var(--color-accent)"/><text x="278.3" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">4</text><text x="278.3" y="331.4" font-size="10" fill="var(--color-text-2)" text-anchor="middle">3</text><rect x="319.1" y="332.2" width="18.5" height="13.8" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="341.3" y="337.7" width="18.5" height="8.3" fill="var(--color-accent)"/><text x="340.1" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">5</text><text x="340.1" y="331.7" font-size="10" fill="var(--color-text-2)" text-anchor="middle">3</text><rect x="380.9" y="326.2" width="18.5" height="19.8" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="403.1" y="332.9" width="18.5" height="13.1" fill="var(--color-accent)"/><text x="401.9" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">6</text><text x="401.9" y="326.9" font-size="10" fill="var(--color-text-2)" text-anchor="middle">4</text><rect x="442.7" y="315.3" width="18.5" height="30.7" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="464.9" y="320.4" width="18.5" height="25.6" fill="var(--color-accent)"/><text x="463.7" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">7</text><text x="463.7" y="314.4" font-size="10" fill="var(--color-text-2)" text-anchor="middle">8</text><rect x="504.5" y="290.3" width="18.5" height="55.7" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="526.7" y="297.7" width="18.5" height="48.3" fill="var(--color-accent)"/><text x="525.5" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">8</text><text x="525.5" y="291.7" font-size="10" fill="var(--color-text-2)" text-anchor="middle">15</text><rect x="566.3" y="242.3" width="18.5" height="103.7" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="588.5" y="238.8" width="18.5" height="107.2" fill="var(--color-accent)"/><text x="587.3" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">9</text><text x="587.3" y="232.8" font-size="10" fill="var(--color-text-2)" text-anchor="middle">34</text><rect x="628.1" y="170.0" width="18.5" height="176.0" fill="var(--color-text-3)" opacity="0.32" stroke="var(--color-text-3)" stroke-width="1"/><rect x="650.3" y="151.4" width="18.5" height="194.6" fill="var(--color-accent)"/><text x="649.1" y="362" font-size="10.5" fill="var(--color-text-3)" text-anchor="middle">10</text><text x="649.1" y="145.4" font-size="10" fill="var(--color-text-2)" text-anchor="middle">61</text><text x="371" y="386" font-size="12" fill="var(--color-text-2)" text-anchor="middle">예측 위험 10분위 (1 = 가장 낮음)</text><text x="62" y="17" font-size="12" fill="var(--color-text-2)">재분류율</text><line x1="700" y1="66" x2="726" y2="66" stroke="var(--color-text-3)" stroke-width="3"/><text x="732" y="70" font-size="11.5" fill="var(--color-text-2)">예측</text><line x1="700" y1="90" x2="726" y2="90" stroke="var(--color-accent)" stroke-width="3"/><text x="732" y="94" font-size="11.5" fill="var(--color-text-2)">실제</text></svg>
+    <figcaption>회색이 예측, 주황이 실제. 위쪽 3개 분위는 거의 일치하고, 중간 분위에서 예측이 약간 높다(과대추정).
+    전체적으로 0.25 같은 문턱을 그대로 써도 무리는 없다.</figcaption>
+  </figure>
+</section>
+
+<section id="compare">
+  <h2><span class="n">08</span>세 기준을 나란히</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>기준</th><th class="n">문턱</th><th class="n">민감도</th><th class="n">특이도</th>
+      <th class="n">PPV</th><th class="n">재검 비율</th><th class="n">NNR</th></tr></thead>
+      <tbody>
+        <tr><td><b>Youden</b></td><td class="n">0.167</td><td class="n">80.0%</td><td class="n">83.3%</td><td class="n">42.0%</td><td class="n">25.0%</td><td class="n">2.4</td></tr>
+        <tr><td>상위 10%</td><td class="n">0.417</td><td class="n">46.3%</td><td class="n">95.5%</td><td class="n">60.8%</td><td class="n">10.0%</td><td class="n">1.6</td></tr>
+        <tr><td><b>상위 20%</b></td><td class="n">0.246</td><td class="n">71.9%</td><td class="n">87.8%</td><td class="n">47.2%</td><td class="n">20.0%</td><td class="n">2.1</td></tr>
+        <tr><td>상위 30%</td><td class="n">0.123</td><td class="n">83.4%</td><td class="n">78.1%</td><td class="n">36.4%</td><td class="n">30.0%</td><td class="n">2.7</td></tr>
+        <tr><td>전부 재검</td><td class="n">0</td><td class="n">100%</td><td class="n">0%</td><td class="n">13.1%</td><td class="n">100%</td><td class="n">7.6</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>문턱의 <b>bootstrap 95% CI</b>는 Youden 0.148–0.188,
+  상위 20% 0.233–0.255다.
+  Youden 쪽이 더 넓은데, 곡선의 어깨가 평평해서 <b>문턱을 조금 옮겨도 성능이 거의 안 변하기 때문</b>이다.
+  이것도 “하나의 최적값”이 없다는 근거다.</p>
+</section>
+
+<section id="counterfactual">
+  <h2><span class="n">09</span>반사실(counterfactual)이 필요한가</h2>
+  <p class="lead">결론: <b>문턱을 정하는 데는 필요 없다. “재검이 예후를 좋게 한다”고 주장할 때만 필요하다.</b></p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>알고 싶은 것</th><th>반사실 필요?</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>문턱 x에서의 민감도·특이도·PPV·NNR</td><td><b>불필요</b></td><td>모든 쌍에 두 번째 측정이 <b>관측</b>돼 있다. “바뀌었는가”는 반사실이 아니라 관측 사건이다.</td></tr>
+        <tr><td>재검으로 <b>치료 결정</b>이 바뀌는 비율</td><td><b>불필요</b></td><td>첫 EF와 두 번째 EF 각각에 가이드라인 규칙(35/40)을 적용하면 두 결정이 계산된다. 차이는 그냥 세면 된다.</td></tr>
+        <tr><td>재검이 <b>예후</b>를 개선하는가</td><td><b>필요</b></td><td>“재검 안 한 군”의 결과가 필요하고, 처치효과 식별이 필요하다. 우리 데이터에는 치료 결정 기록이 없고, 음성대조(PPI +31.9%p)로 인과 식별이 실패했다.</td></tr>
+        <tr><td>재검 안 한 군의 자연경과</td><td>부분적으로 필요</td><td>이후 정기 에코가 있으면 관측 대리값이 되지만, 적응증 교란(indication bias)이 붙는다.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="warnbox">
+    <span class="lbl">한 줄 구분</span>
+    <b>“재검은 라벨을 바꾼다”</b>(예측 문제, 지금 데이터로 완결)와
+    <b>“재검은 환자를 좋게 만든다”</b>(인과 문제, 이 데이터로 불가)를 논문에서 분리한다.
+  </div>
+</section>
+
+<section id="protocol">
+  <h2><span class="n">10</span>그래서 사전 지정은 이렇게</h2>
+  <ol>
+    <li><b>주 문턱 = 용량 기반</b>: 상위 20% → 0.246 (95% CI 0.233–0.255).
+    이유: 실제 제약은 인력이고, 비용 가정을 발명하지 않아도 된다.</li>
+    <li><b>2차 = 비용 기반 결정곡선</b>: 손해:이득 1:2, 1:5, 1:10 각각에 대해 문턱과 순이득을 보고.</li>
+    <li><b>Youden은 참고값</b>: 0.167(민감도 80.0%, 특이도 83.3%) — “등비용 가정”이라고 라벨.</li>
+    <li><b>문턱 선택은 CV 안에서</b>(nested). 같은 데이터에서 고르면 낙관 편향이 생긴다.</li>
+    <li><b>유병률 민감도</b>: 재분류율이 낮은 외래로 옮기면 PPV가 떨어진다. 절대 %와 함께 <b>백분위(top X%)</b>도 제시.</li>
+    <li><b>보정 전제</b>: 확률을 %로 쓰려면 보정이 맞아야 한다(그림 4). 깨지면 % 대신 백분위를 쓴다.</li>
+  </ol>
+</section>
+
+<section id="limits">
+  <h2><span class="n">11</span>한계</h2>
+  <ul>
+    <li><b>선택편향</b>: 30일 안에 재검을 받은 사람만 학습했다. 일반 외래에서는 기저 재분류율이 낮아 PPV가 떨어진다.</li>
+    <li><b>단일기관</b>: 외부검증 없음. temporal split으로 대체 예정.</li>
+    <li><b>라벨이 잡음</b>: 30일 창의 라벨 변화는 사실상 잡음이다. “예후 예측”으로 읽으면 안 된다.</li>
+    <li><b>비용 가정</b>: 결정곡선의 손해:이득 비율은 우리가 정한 값이 아니라 독자가 자기 상황에 맞춰 넣어야 한다.</li>
+    <li><b>bootstrap</b>: 쌍 단위 재표집이라 환자 내 상관을 완전히 반영하지 못한다. 환자 클러스터 부트스트랩이 더 엄밀하다.</li>
+  </ul>
+  <p class="note">재현: <code>src/threshold_analysis.py</code> → <code>results/threshold_analysis.json</code>,
+  그림은 <code>src/make_note_threshold.py</code>가 같은 JSON에서 직접 그린다(SVG).</p>
+</section>
+<footer>
+  <p>데이터: MIMIC-IV-ECHO v1.0.1 · MIMIC-IV v3.1 (PhysioNet credentialed, DUA 준수).
+  환자 단위 데이터는 공개하지 않는다 — 이 페이지에는 집계 통계만 있다.</p>
+  <p>생성: <code>src/make_note_threshold.py</code> · 수치: <code>results/threshold_analysis.json</code></p>
+  <p>27paper-echo · 2026-11-05</p>
+</footer>
+</main>
+</body>
+</html>
